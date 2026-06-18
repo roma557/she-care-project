@@ -1,0 +1,18 @@
+{
+  "name": "Her Wellness",
+  "short_name": "Her Wellness",
+  "description": "PCOS & PCOD companion for women in India",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0eb",
+  "theme_color": "#993556",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
