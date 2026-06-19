@@ -1,4 +1,4 @@
-import type { Condition, ConditionCategory } from "./types";
+import type { Condition, ConditionCategory, ConditionCategoryId } from "./types";
 
 export const CONDITION_CATEGORIES: ConditionCategory[] = [
   { id: "menstrual-cycle", label: "Cycle & Bleeding" },

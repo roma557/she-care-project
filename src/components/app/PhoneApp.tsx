@@ -17,6 +17,9 @@ import { OnboardingScreen } from "@/components/sections/OnboardingScreen";
 import { AppStateProvider, useAppState } from "@/context/AppStateContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppScreen, NavTab, OVERLAY_SCREENS } from "@/lib/phone";
+import { buildNotificationContext } from "@/lib/notifications";
+import { getEffectiveTier } from "@/lib/subscription";
+import { useAwarenessPush } from "@/hooks/useAwarenessPush";
 
 interface ScreenContentProps {
   screen: AppScreen;
@@ -51,10 +54,18 @@ function isNavTab(screen: AppScreen): screen is NavTab {
 }
 
 function PhoneAppInner() {
-  const { profile, hydrated, currentCycleDay, assessmentResult } = useAppState();
   const {
+    profile,
+    hydrated,
+    currentCycleDay,
+    assessmentResult,
+    lastSymptomSaveDate,
+  } = useAppState();
+  const {
+    user,
     notifications,
     unreadCount,
+    notificationPrefs,
     syncNotifications,
     markNotificationRead,
     dismissNotification,
@@ -66,11 +77,73 @@ function PhoneAppInner() {
 
   const showBottomNav = isNavTab(screen) && profile.onboardingComplete;
 
+  useAwarenessPush({
+    enabled: notificationPrefs.browserPush,
+    notifications,
+  });
+
   useEffect(() => {
-    if (hydrated && profile.onboardingComplete) {
-      syncNotifications(currentCycleDay, !!assessmentResult);
+    if (!hydrated || !profile.onboardingComplete) return;
+
+    const context = buildNotificationContext({
+      currentCycleDay,
+      cycleLength: profile.cycleLength || 28,
+      cycleRegularity: profile.intakeAnswers?.cycleRegularity,
+      hasAssessment: !!assessmentResult,
+      assessmentResult,
+      primaryGoal: profile.intakeAnswers?.primaryGoal,
+      lastSymptomSaveDate: lastSymptomSaveDate ?? undefined,
+      subscriptionExpiresAt: user?.subscription.expiresAt ?? null,
+      subscriptionTier: user ? getEffectiveTier(user.subscription) : "free",
+    });
+
+    syncNotifications(context);
+  }, [
+    hydrated,
+    profile.onboardingComplete,
+    profile.cycleLength,
+    profile.intakeAnswers?.cycleRegularity,
+    profile.intakeAnswers?.primaryGoal,
+    currentCycleDay,
+    assessmentResult,
+    lastSymptomSaveDate,
+    user,
+    syncNotifications,
+  ]);
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== "visible" || !hydrated || !profile.onboardingComplete) {
+        return;
+      }
+      const context = buildNotificationContext({
+        currentCycleDay,
+        cycleLength: profile.cycleLength || 28,
+        cycleRegularity: profile.intakeAnswers?.cycleRegularity,
+        hasAssessment: !!assessmentResult,
+        assessmentResult,
+        primaryGoal: profile.intakeAnswers?.primaryGoal,
+        lastSymptomSaveDate: lastSymptomSaveDate ?? undefined,
+        subscriptionExpiresAt: user?.subscription.expiresAt ?? null,
+        subscriptionTier: user ? getEffectiveTier(user.subscription) : "free",
+      });
+      syncNotifications(context);
     }
-  }, [hydrated, profile.onboardingComplete, currentCycleDay, assessmentResult, syncNotifications]);
+
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [
+    hydrated,
+    profile.onboardingComplete,
+    profile.cycleLength,
+    profile.intakeAnswers?.cycleRegularity,
+    profile.intakeAnswers?.primaryGoal,
+    currentCycleDay,
+    assessmentResult,
+    lastSymptomSaveDate,
+    user,
+    syncNotifications,
+  ]);
 
   function handleNavigate(target: AppScreen) {
     if (target === "notifications") {

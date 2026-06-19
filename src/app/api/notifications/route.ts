@@ -9,8 +9,58 @@ import {
   generateSmartNotifications,
   AppNotification,
   NotificationPreferences,
+  NotificationSyncContext,
+  DEFAULT_NOTIFICATION_PREFS,
 } from "@/lib/notifications";
 import { getEffectiveTier } from "@/lib/subscription";
+
+function parseContext(
+  searchParams: URLSearchParams,
+  userTier: string,
+  userExpiresAt: string | null,
+): NotificationSyncContext {
+  const topTipsRaw = searchParams.get("topTips");
+  const learnRaw = searchParams.get("learnTopics");
+
+  return {
+    currentCycleDay: Number(searchParams.get("cycleDay") ?? "1"),
+    cycleLength: Number(searchParams.get("cycleLength") ?? "28"),
+    cycleRegularity: (searchParams.get("cycleRegularity") ?? "unknown") as NotificationSyncContext["cycleRegularity"],
+    hasAssessment: searchParams.get("hasAssessment") === "true",
+    showDoctorAlert: searchParams.get("showDoctorAlert") === "true",
+    doctorReason: searchParams.get("doctorReason") ?? undefined,
+    primaryGoal: searchParams.get("primaryGoal") ?? "",
+    hasLoggedSymptomsToday: searchParams.get("hasLoggedSymptomsToday") === "true",
+    topTips: topTipsRaw ? (JSON.parse(topTipsRaw) as string[]) : [],
+    suggestedLearnTopics: learnRaw
+      ? (JSON.parse(learnRaw) as { id: string; name: string }[])
+      : [],
+    subscriptionExpiresAt: userExpiresAt,
+    subscriptionTier: userTier,
+  };
+}
+
+function mergePrefs(prefs: Partial<NotificationPreferences> | undefined): NotificationPreferences {
+  return { ...DEFAULT_NOTIFICATION_PREFS, ...prefs };
+}
+
+async function syncForUser(
+  userId: string,
+  context: NotificationSyncContext,
+  prefs: NotificationPreferences,
+): Promise<AppNotification[]> {
+  const record = findUserById(userId);
+  if (!record) return [];
+
+  const existingIds = new Set(record.notifications.map((n) => n.id));
+  const newOnes = generateSmartNotifications({ context, existingIds, prefs });
+
+  if (newOnes.length === 0) return record.notifications;
+
+  const notifications = [...newOnes, ...record.notifications].slice(0, 50);
+  setUserNotifications(userId, notifications);
+  return notifications;
+}
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
@@ -19,29 +69,51 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const cycleDay = Number(searchParams.get("cycleDay") ?? "1");
-  const hasAssessment = searchParams.get("hasAssessment") === "true";
+  const context = parseContext(
+    searchParams,
+    getEffectiveTier(user.subscription),
+    user.subscription.expiresAt,
+  );
 
   const record = findUserById(user.id);
   if (!record) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const existingIds = new Set(record.notifications.map((n) => n.id));
-  const newOnes = generateSmartNotifications({
-    currentCycleDay: cycleDay,
-    hasAssessment,
-    subscriptionExpiresAt: user.subscription.expiresAt,
-    subscriptionTier: getEffectiveTier(user.subscription),
-    existingIds,
-    prefs: user.notificationPrefs,
-  });
+  const notifications = await syncForUser(
+    user.id,
+    context,
+    mergePrefs(user.notificationPrefs),
+  );
 
-  let notifications = record.notifications;
-  if (newOnes.length > 0) {
-    notifications = [...newOnes, ...notifications].slice(0, 50);
-    setUserNotifications(user.id, notifications);
+  return NextResponse.json({ notifications });
+}
+
+export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+
+  const body = await req.json();
+  const context = body.context as NotificationSyncContext;
+  if (!context) {
+    return NextResponse.json({ error: "Missing context" }, { status: 400 });
+  }
+
+  const record = findUserById(user.id);
+  if (!record) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  context.subscriptionTier = getEffectiveTier(user.subscription);
+  context.subscriptionExpiresAt = user.subscription.expiresAt;
+
+  const notifications = await syncForUser(
+    user.id,
+    context,
+    mergePrefs(user.notificationPrefs),
+  );
 
   return NextResponse.json({ notifications });
 }
@@ -76,7 +148,7 @@ export async function PATCH(req: NextRequest) {
 
   if (body.prefs) {
     updateUser(user.id, {
-      notificationPrefs: { ...user.notificationPrefs, ...body.prefs } as NotificationPreferences,
+      notificationPrefs: mergePrefs({ ...user.notificationPrefs, ...body.prefs }),
     });
   }
 

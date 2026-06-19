@@ -13,8 +13,8 @@ import {
   SubscriptionTier,
 } from "@/lib/subscription";
 import { maskPhone } from "@/lib/auth-types";
-import { NotificationPreferences, DEFAULT_NOTIFICATION_PREFS } from "@/lib/notifications";
-import { loadJSON } from "@/lib/storage";
+import { NotificationPreferences } from "@/lib/notifications";
+import { enableBrowserPush, getBrowserPushStatus } from "@/hooks/useAwarenessPush";
 
 import { AppScreen } from "@/lib/phone";
 
@@ -23,10 +23,14 @@ interface ProfileScreenProps {
 }
 
 const PREFS_LABELS: { key: keyof NotificationPreferences; label: string; desc: string }[] = [
-  { key: "periodReminders", label: "Period reminders", desc: "When your period may be approaching" },
+  { key: "cycleInsights", label: "Cycle phase awareness", desc: "Gentle tips for your current cycle phase" },
+  { key: "periodReminders", label: "Period reminders", desc: "Only for regular cycles — estimated window" },
+  { key: "symptomCheckins", label: "Symptom check-ins", desc: "Daily nudge to log how you feel" },
+  { key: "carePlanReminders", label: "Care plan tips", desc: "Personalised guidance from your health profile" },
+  { key: "doctorAlerts", label: "Doctor awareness", desc: "Reminders to discuss flagged symptoms" },
+  { key: "learnContent", label: "PCOS learn content", desc: "Recommended articles for your profile" },
   { key: "wellnessTips", label: "Daily wellness tips", desc: "PCOS-friendly habits & nutrition" },
   { key: "assessmentReminders", label: "Assessment reminders", desc: "Nudge to complete your health profile" },
-  { key: "cycleInsights", label: "Cycle insights", desc: "Phase-based tips for your cycle day" },
   { key: "planUpdates", label: "Plan updates", desc: "Subscription expiry & renewal alerts" },
 ];
 
@@ -39,22 +43,22 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
     activatePlan,
     updateNotificationPrefs,
     unreadCount,
+    notificationPrefs,
   } = useAuth();
 
   const [showAuth, setShowAuth] = useState(false);
   const [activating, setActivating] = useState<SubscriptionTier | null>(null);
   const [section, setSection] = useState<"main" | "plans" | "notifications">("main");
-  const [localPrefs, setLocalPrefs] = useState(DEFAULT_NOTIFICATION_PREFS);
+  const [pushStatus, setPushStatus] = useState<ReturnType<typeof getBrowserPushStatus>>("default");
+  const [pushLoading, setPushLoading] = useState(false);
 
   const displayName = user?.name || profile.name || "Friend";
   const tier = user ? getEffectiveTier(user.subscription) : "free";
-  const prefs = user?.notificationPrefs ?? localPrefs;
+  const prefs = notificationPrefs;
 
   useEffect(() => {
-    if (!user) {
-      setLocalPrefs(loadJSON("notification-prefs", DEFAULT_NOTIFICATION_PREFS));
-    }
-  }, [user, section]);
+    setPushStatus(getBrowserPushStatus());
+  }, [section]);
 
   async function handleActivate(plan: SubscriptionTier) {
     if (!isAuthenticated) {
@@ -68,9 +72,17 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   }
 
   async function togglePref(key: keyof NotificationPreferences) {
-    const next = { ...prefs, [key]: !prefs[key] };
-    if (!user) setLocalPrefs(next);
     await updateNotificationPrefs({ [key]: !prefs[key] });
+  }
+
+  async function handleEnablePush() {
+    setPushLoading(true);
+    const result = await enableBrowserPush();
+    setPushStatus(result === "granted" ? "granted" : result === "unsupported" ? "unsupported" : "denied");
+    if (result === "granted") {
+      await updateNotificationPrefs({ browserPush: true });
+    }
+    setPushLoading(false);
   }
 
   if (showAuth) {
@@ -141,10 +153,35 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
         <button type="button" onClick={() => setSection("main")} className="mb-4 text-xs text-gray-500">
           ← Profile
         </button>
-        <h2 className="font-serif text-2xl text-purple-dark">Notification settings</h2>
-        <p className="mt-1 text-xs text-gray-500">Choose what you want to hear about</p>
+        <h2 className="font-serif text-2xl text-purple-dark">Awareness settings</h2>
+        <p className="mt-1 text-xs text-gray-500">Education & reminders — not medical predictions</p>
 
-        <ul className="mt-5 space-y-2">
+        <div className="mt-5 rounded-2xl bg-white p-4 shadow-card">
+          <p className="text-sm font-medium text-purple-dark">Browser notifications</p>
+          <p className="mt-0.5 text-[10px] text-gray-500">
+            Get awareness alerts when the app is in the background
+          </p>
+          {pushStatus === "granted" && prefs.browserPush ? (
+            <p className="mt-3 text-[10px] font-medium text-teal-mid">Enabled on this device</p>
+          ) : pushStatus === "denied" ? (
+            <p className="mt-3 text-[10px] text-amber-mid">
+              Blocked in browser settings — allow notifications for this site
+            </p>
+          ) : pushStatus === "unsupported" ? (
+            <p className="mt-3 text-[10px] text-gray-500">Not supported in this browser</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleEnablePush}
+              disabled={pushLoading}
+              className="mt-3 w-full rounded-full bg-pink-mid py-2.5 text-xs font-medium text-white disabled:opacity-50"
+            >
+              {pushLoading ? "Requesting…" : "Enable push notifications"}
+            </button>
+          )}
+        </div>
+
+        <ul className="mt-4 space-y-2">
           {PREFS_LABELS.map(({ key, label, desc }) => (
             <li key={key} className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-card">
               <div>

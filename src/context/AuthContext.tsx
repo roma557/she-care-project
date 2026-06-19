@@ -9,8 +9,14 @@ import {
   ReactNode,
 } from "react";
 import { AuthUser } from "@/lib/auth-types";
-import { SubscriptionTier } from "@/lib/subscription";
-import { AppNotification, NotificationPreferences } from "@/lib/notifications";
+import { SubscriptionTier, getEffectiveTier } from "@/lib/subscription";
+import {
+  AppNotification,
+  NotificationPreferences,
+  NotificationSyncContext,
+  generateSmartNotifications,
+  DEFAULT_NOTIFICATION_PREFS,
+} from "@/lib/notifications";
 import { loadJSON, saveJSON } from "@/lib/storage";
 
 interface AuthContextValue {
@@ -25,7 +31,8 @@ interface AuthContextValue {
   activatePlan: (tier: SubscriptionTier) => Promise<{ error?: string }>;
   notifications: AppNotification[];
   unreadCount: number;
-  syncNotifications: (cycleDay: number, hasAssessment: boolean) => Promise<void>;
+  notificationPrefs: NotificationPreferences;
+  syncNotifications: (context: NotificationSyncContext) => Promise<AppNotification[]>;
   markNotificationRead: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -37,10 +44,19 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const LOCAL_NOTIFICATIONS_KEY = "notifications";
 const LOCAL_PREFS_KEY = "notification-prefs";
 
+function mergePrefs(prefs?: Partial<NotificationPreferences>): NotificationPreferences {
+  return { ...DEFAULT_NOTIFICATION_PREFS, ...prefs };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [localPrefs, setLocalPrefs] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
+
+  const notificationPrefs = user
+    ? mergePrefs(user.notificationPrefs)
+    : localPrefs;
 
   const refreshUser = useCallback(async () => {
     try {
@@ -54,44 +70,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));
-    const local = loadJSON<AppNotification[]>(LOCAL_NOTIFICATIONS_KEY, []);
-    setNotifications(local);
+    setNotifications(loadJSON<AppNotification[]>(LOCAL_NOTIFICATIONS_KEY, []));
+    setLocalPrefs(loadJSON(LOCAL_PREFS_KEY, DEFAULT_NOTIFICATION_PREFS));
   }, [refreshUser]);
 
   const syncNotifications = useCallback(
-    async (cycleDay: number, hasAssessment: boolean) => {
+    async (context: NotificationSyncContext): Promise<AppNotification[]> => {
       if (user) {
         try {
-          const res = await fetch(
-            `/api/notifications?cycleDay=${cycleDay}&hasAssessment=${hasAssessment}`,
-          );
+          const res = await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ context }),
+          });
           if (res.ok) {
             const data = await res.json();
             setNotifications(data.notifications);
+            saveJSON(LOCAL_NOTIFICATIONS_KEY, data.notifications);
+            return data.notifications as AppNotification[];
           }
         } catch {
-          // keep local
-        }
-      } else {
-        const { generateSmartNotifications, DEFAULT_NOTIFICATION_PREFS } = await import(
-          "@/lib/notifications"
-        );
-        const existing = loadJSON<AppNotification[]>(LOCAL_NOTIFICATIONS_KEY, []);
-        const existingIds = new Set(existing.map((n) => n.id));
-        const newOnes = generateSmartNotifications({
-          currentCycleDay: cycleDay,
-          hasAssessment,
-          subscriptionExpiresAt: null,
-          subscriptionTier: "free",
-          existingIds,
-          prefs: loadJSON(LOCAL_PREFS_KEY, DEFAULT_NOTIFICATION_PREFS),
-        });
-        if (newOnes.length > 0) {
-          const merged = [...newOnes, ...existing].slice(0, 50);
-          setNotifications(merged);
-          saveJSON(LOCAL_NOTIFICATIONS_KEY, merged);
+          // fall through to local
         }
       }
+
+      const existing = loadJSON<AppNotification[]>(LOCAL_NOTIFICATIONS_KEY, []);
+      const existingIds = new Set(existing.map((n) => n.id));
+      const prefs = loadJSON(LOCAL_PREFS_KEY, DEFAULT_NOTIFICATION_PREFS);
+
+      const newOnes = generateSmartNotifications({
+        context: {
+          ...context,
+          subscriptionExpiresAt: user?.subscription.expiresAt ?? null,
+          subscriptionTier: user ? getEffectiveTier(user.subscription) : "free",
+        },
+        existingIds,
+        prefs: mergePrefs(prefs),
+      });
+
+      const merged =
+        newOnes.length > 0 ? [...newOnes, ...existing].slice(0, 50) : existing;
+
+      if (newOnes.length > 0 || merged !== existing) {
+        setNotifications(merged);
+        saveJSON(LOCAL_NOTIFICATIONS_KEY, merged);
+      }
+
+      return merged;
     },
     [user],
   );
@@ -123,9 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return next;
         });
         if (body.prefs) {
-          const { DEFAULT_NOTIFICATION_PREFS } = await import("@/lib/notifications");
           const current = loadJSON(LOCAL_PREFS_KEY, DEFAULT_NOTIFICATION_PREFS);
-          saveJSON(LOCAL_PREFS_KEY, { ...current, ...body.prefs });
+          const updated = mergePrefs({ ...current, ...body.prefs });
+          saveJSON(LOCAL_PREFS_KEY, updated);
+          setLocalPrefs(updated);
         }
       }
     },
@@ -200,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activatePlan,
         notifications,
         unreadCount,
+        notificationPrefs,
         syncNotifications,
         markNotificationRead: (id) => patchNotifications({ markReadId: id }),
         dismissNotification: (id) => patchNotifications({ dismissId: id }),

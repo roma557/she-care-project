@@ -83,7 +83,7 @@ export function NotificationsPanel({
               <span className="text-4xl">🔔</span>
               <p className="mt-3 text-sm text-gray-600">No notifications yet</p>
               <p className="mt-1 text-[10px] text-gray-400">
-                We&apos;ll remind you about your cycle, wellness tips & more
+                We&apos;ll share cycle awareness, wellness tips & PCOS education
               </p>
             </div>
           ) : (

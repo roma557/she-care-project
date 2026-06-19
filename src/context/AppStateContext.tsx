@@ -36,6 +36,7 @@ interface AppStateContextValue {
   toggleSymptom: (symptom: string) => void;
   saveSymptoms: () => void;
   symptomSaved: boolean;
+  lastSymptomSaveDate: string | null;
   assessmentResult: AssessmentResult | null;
   saveAssessmentResult: (result: AssessmentResult) => void;
   updateIntakeProfile: (answers: IntakeAnswers, plan: IntakePlan) => void;
@@ -48,6 +49,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [cycle, setCycle] = useState<CycleState>(DEFAULT_CYCLE);
   const [symptomSaved, setSymptomSaved] = useState(false);
+  const [lastSymptomSaveDate, setLastSymptomSaveDate] = useState<string | null>(null);
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [today, setToday] = useState(() => new Date());
@@ -56,6 +58,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setProfile(migrateProfile(loadJSON("profile", DEFAULT_PROFILE)));
     setCycle(migrateCycleState(loadJSON("cycle", DEFAULT_CYCLE)));
     setAssessmentResult(migrateAssessmentResult(loadJSON("assessment-result", null)));
+    setLastSymptomSaveDate(loadJSON<string | null>("last-symptom-save", null));
     setHydrated(true);
 
     const midnight = new Date();
@@ -130,6 +133,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveSymptoms = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    setLastSymptomSaveDate(today);
+    saveJSON("last-symptom-save", today);
     setSymptomSaved(true);
     setTimeout(() => setSymptomSaved(false), 3000);
   }, []);
@@ -170,6 +176,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         toggleSymptom,
         saveSymptoms,
         symptomSaved,
+        lastSymptomSaveDate,
         assessmentResult,
         saveAssessmentResult,
         updateIntakeProfile,
