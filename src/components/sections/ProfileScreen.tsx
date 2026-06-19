@@ -257,8 +257,8 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
         />
         <MenuRow
           icon="📋"
-          label="Health assessment"
-          desc="Review or retake"
+          label="Health profile"
+          desc="Your intake & care plan"
           onClick={() => onNavigate("assessment")}
         />
         <MenuRow

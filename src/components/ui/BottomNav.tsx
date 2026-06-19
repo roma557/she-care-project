@@ -8,54 +8,38 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ active = "home", onNavigate }: BottomNavProps) {
-  const items: { id: NavTab; label: string; icon: typeof HomeIcon; center?: boolean }[] = [
+  const items: { id: NavTab; label: string; icon: typeof HomeIcon }[] = [
     { id: "home", label: "Home", icon: HomeIcon },
-    { id: "learn", label: "Learn", icon: BookIcon },
-    { id: "chat", label: "Ask AI", icon: ChatIcon, center: true },
     { id: "cycle", label: "Cycle", icon: CalendarIcon },
+    { id: "chat", label: "AI Care", icon: ChatIcon },
+    { id: "learn", label: "Reports", icon: ChartIcon },
     { id: "profile", label: "Profile", icon: UserIcon },
   ];
 
   return (
     <nav
-      className="absolute bottom-0 left-0 right-0 z-20 border-t border-pink-light/60 bg-white/95 px-2 pt-2 backdrop-blur-md"
-      style={{ paddingBottom: "var(--app-safe-bottom)" }}
+      className="absolute bottom-0 left-0 right-0 z-20 border-t border-ink/[0.06] bg-surface"
+      style={{ padding: "10px 0 calc(var(--app-safe-bottom) + 28px)" }}
     >
-      <div className="flex items-end justify-around">
+      <div className="flex">
         {items.map((item) => {
           const isActive = active === item.id;
           const Icon = item.icon;
-
-          if (item.center) {
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate?.(item.id)}
-                className="-mt-5 flex flex-col items-center"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-dark shadow-card">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
-                <span className="mt-1 text-[10px] font-medium text-purple-dark">
-                  {item.label}
-                </span>
-              </button>
-            );
-          }
 
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => onNavigate?.(item.id)}
-              className="flex flex-col items-center gap-0.5 py-1"
+              className="flex flex-1 flex-col items-center gap-1 border-none bg-transparent px-0 py-1 active:opacity-70"
             >
               <Icon
-                className={`h-5 w-5 ${isActive ? "text-pink-mid" : "text-gray-400"}`}
+                className={`h-5 w-5 ${isActive ? "text-rose-deep" : "text-ink-faint"}`}
               />
               <span
-                className={`text-[10px] font-medium ${isActive ? "text-pink-mid" : "text-gray-400"}`}
+                className={`text-[0.55rem] font-medium tracking-[0.06em] ${
+                  isActive ? "text-rose-deep" : "text-ink-faint"
+                }`}
               >
                 {item.label}
               </span>
@@ -75,11 +59,11 @@ function HomeIcon({ className }: { className?: string }) {
   );
 }
 
-function BookIcon({ className }: { className?: string }) {
+function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4 19.5A2.5 2.5 0 016.5 17H20" strokeLinecap="round" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
     </svg>
   );
 }
@@ -93,11 +77,10 @@ function ChatIcon({ className }: { className?: string }) {
   );
 }
 
-function CalendarIcon({ className }: { className?: string }) {
+function ChartIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+      <path d="M4 20V10M10 20V4M16 20v-6M22 20V8" strokeLinecap="round" />
     </svg>
   );
 }

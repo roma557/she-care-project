@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Her Wellness — PCOS & PCOD Companion",
+  title: "She Care — PCOS & PCOD Companion",
   description:
-    "AI-powered wellness companion for women with PCOS/PCOD in India",
+    "Your calm companion for PCOS & PCOD — cycle tracking, insights, and gentle care",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Her Wellness",
+    title: "She Care",
   },
   icons: {
     icon: "/icon.svg",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#993556",
+  themeColor: "#C4647A",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

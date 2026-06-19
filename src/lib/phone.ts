@@ -7,7 +7,7 @@ export const PHONE = {
   /** Home indicator area */
   safeBottom: 20,
   /** Horizontal content padding */
-  paddingX: 20,
+  paddingX: 28,
   /** Bottom nav bar height (excluding safe bottom) */
   navHeight: 72,
 } as const;

@@ -1,19 +1,18 @@
 "use client";
 
-import { AppShell, AppHeader } from "@/components/layout/AppShell";
+import { AppShell, AppFullBleed } from "@/components/layout/AppShell";
+import { CycleCard } from "@/components/ui/CycleCard";
+import { InsightCard } from "@/components/ui/InsightCard";
+import { SymptomChip } from "@/components/ui/SymptomChip";
 import { useAppState } from "@/context/AppStateContext";
-import { getCyclePhase } from "@/lib/cycle";
-import { formatTodayLong } from "@/lib/datetime";
+import { ALL_SYMPTOMS, getCyclePhase } from "@/lib/cycle";
 import { getGreeting } from "@/lib/profile";
 import { AppScreen } from "@/lib/phone";
 
-const modules: { icon: string; title: string; desc: string; color: string; screen: AppScreen }[] = [
-  { icon: "📋", title: "Assessment", desc: "9-question health profile", color: "bg-pink-light", screen: "assessment" },
-  { icon: "📚", title: "Learn", desc: "PCOS & PCOD knowledge", color: "bg-purple-light", screen: "learn" },
-  { icon: "🥗", title: "Care Plan", desc: "Diet, exercise & sleep", color: "bg-teal-light", screen: "careplan" },
-  { icon: "📅", title: "Cycle", desc: "Track periods & symptoms", color: "bg-pink-light", screen: "cycle" },
-  { icon: "💜", title: "Wellness", desc: "Affirmations & coping", color: "bg-purple-light", screen: "wellness" },
-  { icon: "✨", title: "Ask AI", desc: "PCOS-specialised Q&A", color: "bg-amber-light", screen: "chat" },
+const INSIGHTS = [
+  { icon: "💧", title: "Hydration", value: "6", unit: "glasses" },
+  { icon: "🌙", title: "Sleep", value: "7.5", unit: "hrs" },
+  { icon: "🧘", title: "Stress", value: "Low", unit: "" },
 ];
 
 interface HomeScreenProps {
@@ -22,134 +21,109 @@ interface HomeScreenProps {
   unreadCount?: number;
 }
 
-export function HomeScreen({ onNavigate, onOpenNotifications, unreadCount = 0 }: HomeScreenProps) {
-  const { currentCycleDay, assessmentResult, profile } = useAppState();
+export function HomeScreen({
+  onNavigate,
+  onOpenNotifications,
+  unreadCount = 0,
+}: HomeScreenProps) {
+  const { currentCycleDay, profile, toggleSymptom, cycle, assessmentResult } = useAppState();
   const phase = getCyclePhase(currentCycleDay);
-  const displayName = profile.name || "there";
+  const displayName = profile.name || "Priya";
+  const cycleLength = profile.cycleLength || 28;
 
   return (
-    <AppShell className="bg-gradient-to-b from-peach/40 via-cream to-cream">
-      <AppHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-gray-500">{getGreeting()},</p>
-            <h1 className="font-serif text-2xl font-semibold text-purple-dark">
-              {displayName}!
-            </h1>
-            <p className="mt-0.5 text-[10px] text-gray-400">{formatTodayLong()}</p>
-            <p className="mt-1 text-xs text-gray-600">
-              {phase.message}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenNotifications}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-card"
-            aria-label="Notifications"
-          >
-            <svg className="h-4 w-4 text-pink-mid" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M13.7 21a2 2 0 01-3.4 0" strokeLinecap="round" />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-mid px-1 text-[9px] font-bold text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </button>
+    <AppShell className="bg-bg">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="font-serif text-2xl text-ink">
+            {getGreeting()}, {displayName}{" "}
+            <span className="text-rose-soft">✦</span>
+          </h1>
         </div>
-      </AppHeader>
-
-      {assessmentResult && (
         <button
           type="button"
-          onClick={() => onNavigate("assessment")}
-          className="mb-4 w-full rounded-2xl bg-pink-light/80 p-3.5 text-left shadow-card"
+          onClick={onOpenNotifications}
+          className="relative flex h-10 w-10 items-center justify-center rounded-full bg-surface shadow-avatar"
+          aria-label="Profile"
         >
-          <p className="text-[10px] font-medium uppercase tracking-wider text-pink-mid">Assessment</p>
-          <p className="mt-0.5 text-sm font-medium text-purple-dark">
-            {assessmentResult.severityLabel} symptom profile
-          </p>
-          <p className="text-[10px] text-gray-500">Tap to retake or review</p>
+          <span className="font-serif text-lg text-rose-deep">
+            {displayName.charAt(0).toUpperCase()}
+          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-deep px-1 text-[9px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
+      </div>
+
+      {assessmentResult && (
+        <div className="mb-5 rounded-2xl border border-rose-soft/40 bg-rose-pale/80 p-4">
+          <p className="text-[0.6rem] font-medium uppercase tracking-[0.18em] text-rose-deep">
+            Your care focus
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-ink-mid">{assessmentResult.reassurance}</p>
+          {assessmentResult.showDoctorAlert && (
+            <button
+              type="button"
+              onClick={() => onNavigate("assessment")}
+              className="mt-3 text-[10px] font-medium text-rose-deep underline underline-offset-2"
+            >
+              View health profile &amp; doctor guidance →
+            </button>
+          )}
+        </div>
       )}
 
-      <div className="mb-5 rounded-3xl bg-white/70 p-5 shadow-card backdrop-blur-sm">
-        <div className="mb-3 flex items-center justify-center">
-          <div className="relative flex w-full items-center justify-between px-2">
-            <div className="h-2 w-2 rounded-full bg-pink-mid/40" />
-            <div className="h-2 w-2 rounded-full bg-pink-mid/60" />
-            <div className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-gradient-to-br from-pink-mid to-purple-mid shadow-lg">
-              <span className="text-sm">{phase.emoji}</span>
-            </div>
-            <div className="h-2 w-2 rounded-full bg-teal-mid/40" />
-            <div className="h-2 w-2 rounded-full bg-teal-mid/60" />
-          </div>
-        </div>
-        <p className="text-center font-serif text-lg text-purple-dark">
-          {phase.name}
+      <CycleCard
+        phaseName={phase.name}
+        cycleDay={currentCycleDay}
+        cycleLength={cycleLength}
+        message={phase.message}
+      />
+
+      <div className="mb-3 mt-6 flex items-center justify-between">
+        <p className="font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] text-ink-faint">
+          Today&apos;s insights
         </p>
-        <p className="mt-0.5 text-center text-xs text-gray-500">Day {currentCycleDay} of cycle</p>
+        <button
+          type="button"
+          onClick={() => onNavigate("learn")}
+          className="text-[0.65rem] font-medium text-rose-deep"
+        >
+          See all
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onNavigate("careplan")}
-        className="mb-4 w-full rounded-2xl bg-white p-4 text-left shadow-card"
-      >
-        <p className="text-[10px] font-medium uppercase tracking-wider text-pink-mid">
-          Today&apos;s focus
-        </p>
-        <div className="mt-1 flex items-center justify-between">
-          <div>
-            <p className="font-serif text-base text-purple-dark">Nourish & Move</p>
-            <p className="text-xs text-gray-500">Low-GI meals & gentle yoga</p>
-          </div>
-          <span className="text-pink-mid">→</span>
-        </div>
-      </button>
+      <AppFullBleed className="hide-scrollbar mb-6 flex gap-3 overflow-x-auto px-7 pb-1">
+        {INSIGHTS.map((item) => (
+          <InsightCard key={item.title} {...item} />
+        ))}
+      </AppFullBleed>
 
-      <button
-        type="button"
-        onClick={() => onNavigate("chat")}
-        className="mb-5 w-full rounded-2xl bg-gradient-to-br from-peach via-pink-light to-purple-light p-4 text-left shadow-card"
-      >
-        <p className="font-serif text-base text-purple-dark">Ask Her Wellness</p>
-        <p className="mb-3 text-xs text-gray-600">
-          Get compassionate, evidence-based guidance
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] text-ink-faint">
+          Log symptoms
         </p>
-        <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2.5 shadow-sm">
-          <span className="flex-1 text-xs text-gray-400">
-            How can I manage PCOS symptoms?
-          </span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-dark">
-            <svg className="h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z" />
-              <path d="M19 11a1 1 0 011 1 7 7 0 01-14 0 1 1 0 112 0 5 5 0 1010 0 1 1 0 011-1z" />
-            </svg>
-          </div>
-        </div>
-      </button>
+        <button
+          type="button"
+          onClick={() => onNavigate("cycle")}
+          className="text-[0.65rem] font-medium text-rose-deep"
+        >
+          History
+        </button>
+      </div>
 
-      <p className="mb-3 text-sm font-medium text-purple-dark">Explore</p>
-      <div className="grid grid-cols-2 gap-2.5">
-        {modules.map((mod) => (
-          <button
-            key={mod.title}
-            type="button"
-            onClick={() => onNavigate(mod.screen)}
-            className={`rounded-2xl p-3.5 text-left ${mod.color}`}
-          >
-            <span className="text-lg">{mod.icon}</span>
-            <p className="mt-1.5 text-sm font-medium text-purple-dark">{mod.title}</p>
-            <p className="text-[10px] text-gray-600">{mod.desc}</p>
-          </button>
+      <div className="flex flex-wrap gap-2">
+        {ALL_SYMPTOMS.slice(0, 6).map((s) => (
+          <SymptomChip
+            key={s}
+            label={s}
+            active={cycle.selectedSymptoms.includes(s)}
+            onToggle={() => toggleSymptom(s)}
+          />
         ))}
       </div>
-
-      <p className="mt-4 rounded-xl bg-amber-light/60 px-3 py-2 text-[9px] leading-relaxed text-amber-mid">
-        This app supplements — not replaces — professional medical advice.
-      </p>
     </AppShell>
   );
 }

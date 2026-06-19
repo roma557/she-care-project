@@ -2,106 +2,99 @@
 
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { BtnOutline, BtnRose } from "@/components/ui/Button";
+import { AuthScreen } from "@/components/sections/AuthScreen";
+import { IntakeFlow } from "@/components/sections/onboarding/IntakeFlow";
 import { useAppState } from "@/context/AppStateContext";
-import { getCyclePhase } from "@/lib/cycle";
+import { useAuth } from "@/context/AuthContext";
+import { INTAKE_STEPS } from "@/lib/intake";
+import type { IntakeAnswers, IntakePlan } from "@/lib/intake";
+
+type OnboardingStep = "splash" | "intake";
 
 export function OnboardingScreen() {
   const { completeOnboarding } = useAppState();
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
-  const [cycleDay, setCycleDay] = useState(8);
+  const { user } = useAuth();
 
-  const phase = getCyclePhase(cycleDay);
-  const trimmedName = name.trim();
+  const [step, setStep] = useState<OnboardingStep>("splash");
+  const [showAuth, setShowAuth] = useState(false);
 
-  function handleFinish() {
-    if (trimmedName) completeOnboarding(trimmedName, cycleDay);
+  function handleIntakeComplete(answers: IntakeAnswers, plan: IntakePlan) {
+    completeOnboarding({
+      name: answers.name || user?.name || "",
+      intakeAnswers: answers,
+      intakePlan: plan,
+    });
   }
 
-  if (step === 0) {
+  if (showAuth) {
     return (
-      <AppShell hasNav={false} className="flex flex-col bg-gradient-to-b from-peach/50 via-cream to-purple-light/30">
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <span className="text-5xl">🌸</span>
-          <h1 className="mt-5 font-serif text-3xl font-semibold text-purple-dark">Her Wellness</h1>
-          <p className="mt-3 max-w-[260px] text-sm leading-relaxed text-gray-600">
-            Your compassionate companion for PCOS & PCOD — personalised care, cycle tracking, and AI guidance.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setStep(1)}
-          className="w-full rounded-full bg-pink-mid py-3.5 text-sm font-medium text-white"
-        >
-          Get started
-        </button>
-      </AppShell>
+      <AuthScreen
+        onSuccess={() => setShowAuth(false)}
+        onCancel={() => setShowAuth(false)}
+      />
     );
   }
 
-  if (step === 1) {
+  if (step === "splash") {
     return (
-      <AppShell hasNav={false} className="bg-gradient-to-b from-pink-light/40 to-cream">
-        <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-pink-mid">Step 1 of 2</p>
-        <h2 className="font-serif text-2xl text-purple-dark">What should we call you?</h2>
-        <p className="mt-2 text-xs text-gray-500">We&apos;ll personalise your home screen greeting.</p>
+      <div className="relative flex h-full flex-col overflow-hidden bg-bg">
+        <div className="relative h-[56%] min-h-[320px]">
+          <div className="hero-gradient absolute inset-0" />
+          <div className="hero-fade-bottom absolute inset-0" />
+          <div className="absolute inset-0 overflow-hidden opacity-25">
+            <div className="absolute left-[12%] top-[18%] h-16 w-16 rounded-full bg-white/40" />
+            <div className="absolute right-[18%] top-[28%] h-10 w-10 rounded-full bg-white/30" />
+            <div className="absolute bottom-[30%] left-[28%] h-8 w-8 rounded-full bg-white/35" />
+            <div className="absolute bottom-[22%] right-[22%] h-14 w-14 rounded-full bg-white/25" />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="animate-float flex h-16 w-16 items-center justify-center rounded-icon border border-white/50 bg-white/30 text-2xl shadow-glass-card backdrop-blur-[12px]">
+              🌸
+            </div>
+          </div>
+        </div>
 
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your first name"
-          maxLength={24}
-          className="mt-6 w-full rounded-2xl border border-pink-light bg-white px-4 py-3.5 text-sm text-purple-dark outline-none focus:border-pink-mid"
-          autoFocus
-        />
-
-        <button
-          type="button"
-          onClick={() => setStep(2)}
-          disabled={!trimmedName}
-          className="mt-6 w-full rounded-full bg-pink-mid py-3 text-sm font-medium text-white disabled:opacity-40"
+        <div
+          className="flex flex-1 flex-col px-7 pb-[calc(var(--app-safe-bottom)+16px)]"
+          style={{ paddingTop: "var(--app-safe-top)" }}
         >
-          Continue
-        </button>
-      </AppShell>
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
+            <h1 className="font-serif text-[2.4rem] font-light tracking-wide text-ink">
+              She <span className="italic">Care</span>
+            </h1>
+            <p className="mt-3 text-xs tracking-[0.35em] text-ink-faint">✦ ✦ ✦</p>
+            <p className="mt-4 max-w-[280px] text-sm font-light leading-relaxed text-ink-mid">
+              A calm companion for PCOS, cycle health &amp; women&apos;s wellbeing — built with care, not judgment.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <BtnRose onClick={() => setStep("intake")}>Begin health intake</BtnRose>
+            <BtnOutline onClick={() => setShowAuth(true)}>
+              I already have an account
+            </BtnOutline>
+            <p className="pt-1 text-center text-[0.65rem] font-light leading-relaxed text-ink-faint">
+              A short, private questionnaire (~3 min) helps personalise your support.
+              <br />
+              By continuing you agree to our{" "}
+              <button type="button" className="underline underline-offset-2">
+                Terms &amp; Privacy
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <AppShell hasNav={false} className="bg-gradient-to-b from-purple-light/40 to-cream">
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-pink-mid">Step 2 of 2</p>
-      <h2 className="font-serif text-2xl text-purple-dark">Where are you in your cycle?</h2>
-      <p className="mt-2 text-xs text-gray-500">This helps us show your current phase on the home screen.</p>
-
-      <div className="mt-6 rounded-3xl bg-white p-5 shadow-card">
-        <div className="text-center">
-          <span className="text-3xl">{phase.emoji}</span>
-          <p className="mt-2 font-serif text-lg text-purple-dark">{phase.name}</p>
-          <p className="mt-1 text-xs text-gray-500">Day {cycleDay}</p>
-        </div>
-
-        <input
-          type="range"
-          min={1}
-          max={35}
-          value={cycleDay}
-          onChange={(e) => setCycleDay(Number(e.target.value))}
-          className="mt-5 w-full accent-pink-mid"
-        />
-        <div className="mt-1 flex justify-between text-[10px] text-gray-400">
-          <span>Day 1</span>
-          <span>Day 35</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleFinish}
-        className="mt-6 w-full rounded-full bg-purple-dark py-3 text-sm font-medium text-white"
-      >
-        Welcome, {trimmedName}! →
-      </button>
-    </AppShell>
+    <IntakeFlow
+      steps={INTAKE_STEPS}
+      initialAnswers={{ name: user?.name ?? "" }}
+      onComplete={handleIntakeComplete}
+      onBackFromFirst={() => setStep("splash")}
+      finishLabel="Enter SheCare"
+    />
   );
 }

@@ -20,7 +20,7 @@ export function PhoneFrame({ children }: PhoneFrameProps) {
       <div className="absolute -left-[3px] top-64 hidden h-14 w-[3px] rounded-l bg-[#2a2a2a] md:block" />
       <div className="absolute -right-[3px] top-40 hidden h-16 w-[3px] rounded-r bg-[#2a2a2a] md:block" />
 
-      <div className="relative h-full overflow-hidden bg-cream md:rounded-[2.35rem]">
+      <div className="relative h-full overflow-hidden bg-bg md:rounded-[2.35rem]">
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-30 hidden items-center justify-between px-6 text-[12px] font-medium text-[#2d2a26] md:flex"
           style={{ height: PHONE.safeTop, paddingTop: 12 }}
@@ -34,7 +34,7 @@ export function PhoneFrame({ children }: PhoneFrameProps) {
           </div>
         </div>
 
-        <div className="relative h-full w-full overflow-hidden bg-cream md:w-[393px] md:h-[852px]">
+        <div className="relative h-full w-full overflow-hidden bg-bg md:w-[393px] md:h-[852px]">
           {children}
         </div>
 

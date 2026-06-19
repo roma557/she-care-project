@@ -1,11 +1,11 @@
 {
-  "name": "Her Wellness",
-  "short_name": "Her Wellness",
-  "description": "PCOS & PCOD companion for women in India",
+  "name": "She Care",
+  "short_name": "She Care",
+  "description": "PCOS & PCOD companion — cycle tracking, insights, and gentle care",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f0eb",
-  "theme_color": "#993556",
+  "background_color": "#fdf8f6",
+  "theme_color": "#c4647a",
   "orientation": "portrait",
   "icons": [
     {

@@ -6,11 +6,29 @@ import { CycleState, CycleMode, DEFAULT_CYCLE, migrateCycleState } from "@/lib/c
 import { cycleStartFromDay, getCurrentCycleDay } from "@/lib/datetime";
 import { AssessmentResult } from "@/lib/assessment";
 import { UserProfile, DEFAULT_PROFILE } from "@/lib/profile";
+import type { IntakeAnswers, IntakePlan } from "@/lib/intake";
+
+function migrateAssessmentResult(raw: unknown): AssessmentResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Partial<AssessmentResult>;
+  if (!Array.isArray(r.summaryLines) || !Array.isArray(r.topTips)) return null;
+  return r as AssessmentResult;
+}
+
+function migrateProfile(raw: unknown): UserProfile {
+  if (!raw || typeof raw !== "object") return DEFAULT_PROFILE;
+  const p = raw as Partial<UserProfile>;
+  return { ...DEFAULT_PROFILE, ...p };
+}
 
 interface AppStateContextValue {
   profile: UserProfile;
   hydrated: boolean;
-  completeOnboarding: (name: string, cycleDay: number) => void;
+  completeOnboarding: (data: {
+    name?: string;
+    intakeAnswers: IntakeAnswers;
+    intakePlan: IntakePlan;
+  }) => void;
   cycle: CycleState;
   currentCycleDay: number;
   setCycleMode: (mode: CycleMode) => void;
@@ -20,6 +38,7 @@ interface AppStateContextValue {
   symptomSaved: boolean;
   assessmentResult: AssessmentResult | null;
   saveAssessmentResult: (result: AssessmentResult) => void;
+  updateIntakeProfile: (answers: IntakeAnswers, plan: IntakePlan) => void;
   clearAssessmentResult: () => void;
 }
 
@@ -34,9 +53,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [today, setToday] = useState(() => new Date());
 
   useEffect(() => {
-    setProfile(loadJSON("profile", DEFAULT_PROFILE));
+    setProfile(migrateProfile(loadJSON("profile", DEFAULT_PROFILE)));
     setCycle(migrateCycleState(loadJSON("cycle", DEFAULT_CYCLE)));
-    setAssessmentResult(loadJSON("assessment-result", null));
+    setAssessmentResult(migrateAssessmentResult(loadJSON("assessment-result", null)));
     setHydrated(true);
 
     const midnight = new Date();
@@ -59,11 +78,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [cycle.cycleStartDate, today],
   );
 
-  const completeOnboarding = useCallback((name: string, cycleDay: number) => {
-    const cycleStartDate = cycleStartFromDay(cycleDay);
-    setProfile({ name, onboardingComplete: true });
-    setCycle((prev) => ({ ...prev, cycleStartDate }));
-  }, []);
+  const completeOnboarding = useCallback(
+    (data: {
+      name?: string;
+      intakeAnswers: IntakeAnswers;
+      intakePlan: IntakePlan;
+    }) => {
+      const { intakeAnswers, intakePlan } = data;
+      const cycleStartDate = cycleStartFromDay(1);
+      setProfile({
+        name: data.name ?? intakeAnswers.name ?? "",
+        onboardingComplete: true,
+        cycleLength: intakeAnswers.cycleLength,
+        symptomTags: [],
+        dietaryTags: intakeAnswers.dietaryTags,
+        activityLevel: intakeAnswers.activityLevel,
+        intakeAnswers,
+      });
+      setCycle((prev) => ({ ...prev, cycleStartDate }));
+      setAssessmentResult(intakePlan);
+      saveJSON("assessment-result", intakePlan);
+    },
+    [],
+  );
 
   const setCycleMode = useCallback((mode: CycleMode) => {
     setCycle((prev) => ({ ...prev, cycleMode: mode }));
@@ -102,6 +139,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     saveJSON("assessment-result", result);
   }, []);
 
+  const updateIntakeProfile = useCallback((answers: IntakeAnswers, plan: IntakePlan) => {
+    setProfile((prev) => ({
+      ...prev,
+      name: answers.name || prev.name,
+      cycleLength: answers.cycleLength,
+      dietaryTags: answers.dietaryTags,
+      activityLevel: answers.activityLevel,
+      intakeAnswers: answers,
+    }));
+    setAssessmentResult(plan);
+    saveJSON("assessment-result", plan);
+  }, []);
+
   const clearAssessmentResult = useCallback(() => {
     setAssessmentResult(null);
     saveJSON("assessment-result", null);
@@ -122,6 +172,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         symptomSaved,
         assessmentResult,
         saveAssessmentResult,
+        updateIntakeProfile,
         clearAssessmentResult,
       }}
     >

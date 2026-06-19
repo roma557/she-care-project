@@ -5,18 +5,20 @@ import { AppShell } from "@/components/layout/AppShell";
 
 const suggestions = [
   "Can I get pregnant with PCOS?",
-  "What foods help reduce PCOS?",
-  "Best exercises for PCOS?",
-  "What supplements should I consider?",
+  "What is endometriosis?",
+  "Why does my period hurt so much?",
+  "Signs of bacterial vaginosis?",
 ];
 
-interface Message {
+interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  exploreUrl?: string;
+  exploreLabel?: string;
 }
 
 export function ChatScreen() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -29,7 +31,7 @@ export function ChatScreen() {
     const question = text.trim();
     if (!question || loading) return;
 
-    const userMsg: Message = { role: "user", content: question };
+    const userMsg: ChatMessage = { role: "user", content: question };
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages);
     setInput("");
@@ -42,13 +44,22 @@ export function ChatScreen() {
         body: JSON.stringify({ messages: nextMessages }),
       });
       const data = await res.json();
-      setMessages([...nextMessages, { role: "assistant", content: data.content }]);
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: data.content,
+          exploreUrl: data.exploreUrl,
+          exploreLabel: data.exploreLabel ?? "Explore more online",
+        },
+      ]);
     } catch {
       setMessages([
         ...nextMessages,
         {
           role: "assistant",
-          content: "I couldn't connect right now. Try the Learn or Care Plan sections for evidence-based guidance.",
+          content:
+            "I couldn't connect right now. Try the Learn or Care Plan sections for evidence-based guidance.",
         },
       ]);
     } finally {
@@ -74,19 +85,34 @@ export function ChatScreen() {
         {messages.length === 0 && (
           <div className="rounded-2xl bg-purple-light/50 p-4">
             <p className="text-xs leading-relaxed text-gray-600">
-              Ask anything about PCOS, diet, cycle, symptoms, or emotional wellbeing. I&apos;m here to help with compassionate, evidence-based guidance.
+              Ask anything about PCOS, cycle health, symptoms, or emotional wellbeing. Every reply
+              includes a link to explore trusted sources online.
             </p>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={msg.role === "user" ? "flex justify-end" : "max-w-[90%]"}>
+          <div key={i} className={msg.role === "user" ? "flex justify-end" : "max-w-[92%]"}>
             {msg.role === "user" ? (
               <div className="max-w-[85%] rounded-2xl rounded-br-md bg-white px-4 py-2.5 shadow-card">
                 <p className="text-xs leading-relaxed text-gray-700">{msg.content}</p>
               </div>
             ) : (
-              <p className="text-xs leading-relaxed text-gray-700">{msg.content}</p>
+              <div className="space-y-2">
+                <p className="text-xs leading-relaxed text-gray-700">{msg.content}</p>
+                {msg.exploreUrl && (
+                  <a
+                    href={msg.exploreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-teal-mid/40 bg-teal-light/50 px-3 py-1.5 text-[10px] font-medium text-teal-dark transition-colors hover:bg-teal-light"
+                  >
+                    <span aria-hidden>🌐</span>
+                    {msg.exploreLabel ?? "Explore more online"}
+                    <span aria-hidden>↗</span>
+                  </a>
+                )}
+              </div>
             )}
           </div>
         ))}

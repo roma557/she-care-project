@@ -82,8 +82,8 @@ function PhoneAppInner() {
 
   if (!hydrated) {
     return (
-      <div className="flex h-full items-center justify-center bg-cream">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-pink-light border-t-pink-mid" />
+      <div className="flex h-full items-center justify-center bg-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-rose-pale border-t-rose-deep" />
       </div>
     );
   }

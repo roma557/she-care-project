@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -8,19 +8,21 @@
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
 
-  --pink-dark: #993556;
-  --pink-mid: #d4537e;
-  --pink-light: #fbeaf0;
-  --purple-dark: #3c3489;
-  --purple-mid: #7f77dd;
-  --purple-light: #eeedfe;
-  --teal-dark: #085041;
-  --teal-mid: #1d9e75;
-  --teal-light: #e1f5ee;
-  --amber-mid: #ba7517;
-  --amber-light: #faeeda;
-  --cream: #f5f0eb;
-  --peach: #f4c4a8;
+  --bg: #fdf8f6;
+  --surface: #ffffff;
+  --rose-deep: #c4647a;
+  --rose-mid: #d9899a;
+  --rose-soft: #edb8c2;
+  --rose-pale: #f9edf0;
+  --blush: #faf0f2;
+  --ink: #2a1a1f;
+  --ink-mid: #6b4451;
+  --ink-faint: #b89aa2;
+  --gold: #c9956a;
+
+  --shadow-card: 0 2px 12px rgba(42, 26, 31, 0.04);
+  --shadow-cta: 0 6px 24px rgba(196, 100, 122, 0.35);
+  --shadow-avatar: 0 4px 16px rgba(196, 100, 122, 0.3);
 }
 
 html {
@@ -30,8 +32,8 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: var(--cream);
-  color: #2d2a26;
+  background: var(--bg);
+  color: var(--ink);
   overflow: hidden;
   height: 100%;
   overscroll-behavior: none;
@@ -40,7 +42,7 @@ body {
 
 @media (min-width: 768px) {
   body {
-    background: #e5e5e5;
+    background: #e8e4e2;
   }
 }
 
@@ -58,28 +60,95 @@ body {
     display: none;
   }
 
-  .screen-fade {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse 110% 80% at 50% 10%, #e8a0b0 0%, transparent 65%),
+      radial-gradient(ellipse 80% 70% at 15% 70%, #d4718a 0%, transparent 60%),
+      radial-gradient(ellipse 90% 60% at 85% 80%, #ebc4cc 0%, transparent 55%),
+      linear-gradient(175deg, #f2c4ce 0%, #d97090 45%, #c45a78 100%);
   }
 
-  .screen-fade-out {
+  .hero-fade-bottom {
+    background: linear-gradient(to bottom, transparent 50%, var(--bg) 100%);
+  }
+
+  .btn-rose {
+    background: linear-gradient(135deg, #d9899a 0%, #c4647a 60%, #a8485e 100%);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    padding: 17px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    box-shadow: var(--shadow-cta);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid rgba(42, 26, 31, 0.15);
+    border-radius: 100px;
+    padding: 16px;
+    color: var(--ink-mid);
+    font-family: var(--font-sans);
+    font-weight: 400;
+  }
+
+  .screen-slide {
+    transition:
+      transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.35s ease;
+  }
+
+  .screen-off-right {
+    transform: translateX(100%);
     opacity: 0;
-    transform: translateY(6px);
+    pointer-events: none;
   }
 
-  .screen-fade-in {
-    opacity: 1;
-    transform: translateY(0);
+  .screen-off-left {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .she-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .she-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--rose-deep);
+    box-shadow: 0 2px 8px rgba(196, 100, 122, 0.3);
+  }
+
+  .she-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--rose-deep);
+    box-shadow: 0 2px 8px rgba(196, 100, 122, 0.3);
   }
 }
 
-/* Layout tokens — mockup values on desktop, device safe areas on phones */
 :root {
   --phone-w: 393px;
   --phone-h: 852px;
   --app-safe-top: env(safe-area-inset-top, 12px);
   --app-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --app-pad-x: 20px;
+  --app-pad-x: 28px;
   --phone-nav-h: 72px;
 }
 
@@ -90,12 +159,11 @@ body {
   }
 }
 
-/* Phone mockup — desktop only; phones use full viewport */
 .app-viewport-root {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: var(--cream);
+  background: var(--bg);
 }
 
 .app-viewport-clip {
@@ -116,7 +184,7 @@ body {
     align-items: center;
     justify-content: center;
     overflow: visible;
-    background: #e5e5e5;
+    background: #e8e4e2;
     padding: 3rem;
   }
 
