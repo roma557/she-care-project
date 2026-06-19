@@ -26,12 +26,12 @@ export const PHONE_CONTENT = {
     PHONE.height - PHONE.safeTop - PHONE.safeBottom,
 } as const;
 
-export type NavTab = "home" | "learn" | "chat" | "cycle" | "wellness";
+export type NavTab = "home" | "learn" | "chat" | "cycle" | "profile";
 
 /** All navigable screens including overlay modules from home grid */
-export type AppScreen = NavTab | "assessment" | "careplan";
+export type AppScreen = NavTab | "assessment" | "careplan" | "wellness" | "notifications";
 
-export const OVERLAY_SCREENS: AppScreen[] = ["assessment", "careplan"];
+export const OVERLAY_SCREENS: AppScreen[] = ["assessment", "careplan", "wellness", "notifications"];
 
 /** Visual scale for the mockup on desktop — internal layout stays 393×852 */
 export const PHONE_DISPLAY = {

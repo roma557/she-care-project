@@ -26,7 +26,13 @@ const helplines = [
   { name: "Vandrevala Foundation", number: "1860-2662-345", hours: "24/7" },
 ];
 
-export function WellnessScreen() {
+import { ScreenBackHeader } from "@/components/ui/ScreenBackHeader";
+
+interface WellnessScreenProps {
+  onBack?: () => void;
+}
+
+export function WellnessScreen({ onBack }: WellnessScreenProps) {
   const [affirmIdx, setAffirmIdx] = useState(0);
   const current = affirmations[affirmIdx];
 
@@ -35,11 +41,15 @@ export function WellnessScreen() {
   }
 
   return (
-    <AppShell className="bg-gradient-to-b from-peach/30 via-cream to-cream">
-      <AppHeader>
-        <h1 className="font-serif text-2xl font-semibold text-purple-dark">Wellness</h1>
-        <p className="mt-1 text-xs text-gray-500">Affirmations, coping tools & support</p>
-      </AppHeader>
+    <AppShell hasNav={!onBack} className="bg-gradient-to-b from-peach/30 via-cream to-cream">
+      {onBack ? (
+        <ScreenBackHeader title="Wellness" onBack={onBack} />
+      ) : (
+        <AppHeader>
+          <h1 className="font-serif text-2xl font-semibold text-purple-dark">Wellness</h1>
+          <p className="mt-1 text-xs text-gray-500">Affirmations, coping tools & support</p>
+        </AppHeader>
+      )}
 
       <div className="mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-teal-mid/20 to-purple-mid/30 p-5 shadow-card">
         <span className="text-3xl">{current.icon}</span>

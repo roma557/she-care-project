@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PhoneFrame } from "@/components/layout/PhoneFrame";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { ScreenTransition } from "@/components/ui/ScreenTransition";
@@ -11,8 +11,11 @@ import { LearnScreen } from "@/components/sections/LearnScreen";
 import { WellnessScreen } from "@/components/sections/WellnessScreen";
 import { AssessmentScreen } from "@/components/sections/AssessmentScreen";
 import { CarePlanScreen } from "@/components/sections/CarePlanScreen";
+import { ProfileScreen } from "@/components/sections/ProfileScreen";
+import { NotificationsPanel } from "@/components/sections/NotificationsPanel";
 import { OnboardingScreen } from "@/components/sections/OnboardingScreen";
 import { AppStateProvider, useAppState } from "@/context/AppStateContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppScreen, NavTab, OVERLAY_SCREENS, PHONE_DISPLAY, PHONE_FRAME } from "@/lib/phone";
 
 interface ScreenContentProps {
@@ -31,7 +34,9 @@ function ScreenContent({ screen, onNavigate }: ScreenContentProps) {
     case "cycle":
       return <CycleScreen />;
     case "wellness":
-      return <WellnessScreen />;
+      return <WellnessScreen onBack={() => onNavigate("home")} />;
+    case "profile":
+      return <ProfileScreen onNavigate={onNavigate} />;
     case "assessment":
       return <AssessmentScreen onBack={() => onNavigate("home")} />;
     case "careplan":
@@ -46,10 +51,34 @@ function isNavTab(screen: AppScreen): screen is NavTab {
 }
 
 function PhoneAppInner() {
-  const { profile, hydrated } = useAppState();
+  const { profile, hydrated, currentCycleDay, assessmentResult } = useAppState();
+  const {
+    notifications,
+    unreadCount,
+    syncNotifications,
+    markNotificationRead,
+    dismissNotification,
+    markAllNotificationsRead,
+  } = useAuth();
+
   const [screen, setScreen] = useState<AppScreen>("home");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const showBottomNav = isNavTab(screen) && profile.onboardingComplete;
+
+  useEffect(() => {
+    if (hydrated && profile.onboardingComplete) {
+      syncNotifications(currentCycleDay, !!assessmentResult);
+    }
+  }, [hydrated, profile.onboardingComplete, currentCycleDay, assessmentResult, syncNotifications]);
+
+  function handleNavigate(target: AppScreen) {
+    if (target === "notifications") {
+      setNotificationsOpen(true);
+      return;
+    }
+    setScreen(target);
+  }
 
   if (!hydrated) {
     return (
@@ -66,45 +95,66 @@ function PhoneAppInner() {
   return (
     <>
       <ScreenTransition screenKey={screen}>
-        <ScreenContent screen={screen} onNavigate={setScreen} />
+        {screen === "home" ? (
+          <HomeScreen
+            onNavigate={handleNavigate}
+            onOpenNotifications={() => setNotificationsOpen(true)}
+            unreadCount={unreadCount}
+          />
+        ) : (
+          <ScreenContent screen={screen} onNavigate={handleNavigate} />
+        )}
       </ScreenTransition>
+
       {showBottomNav && (
         <BottomNav active={screen} onNavigate={(tab) => setScreen(tab)} />
       )}
+
+      <NotificationsPanel
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        notifications={notifications}
+        onMarkRead={markNotificationRead}
+        onDismiss={dismissNotification}
+        onMarkAllRead={markAllNotificationsRead}
+        onNavigate={handleNavigate}
+      />
     </>
   );
 }
 
 export function PhoneApp() {
   return (
-    <AppStateProvider>
-      <div
-        className="flex min-h-screen items-center justify-center bg-neutral-200"
-        style={{ padding: PHONE_DISPLAY.padding }}
-      >
+    <AuthProvider>
+      <AppStateProvider>
         <div
-          style={{
-            width: PHONE_FRAME.outerWidth * PHONE_DISPLAY.scale,
-            height: PHONE_FRAME.outerHeight * PHONE_DISPLAY.scale,
-            margin: PHONE_DISPLAY.margin,
-          }}
+          className="flex min-h-screen items-center justify-center bg-neutral-200"
+          style={{ padding: PHONE_DISPLAY.padding }}
         >
           <div
             style={{
-              transform: `scale(${PHONE_DISPLAY.scale})`,
-              transformOrigin: "top left",
-              width: PHONE_FRAME.outerWidth,
-              height: PHONE_FRAME.outerHeight,
+              width: PHONE_FRAME.outerWidth * PHONE_DISPLAY.scale,
+              height: PHONE_FRAME.outerHeight * PHONE_DISPLAY.scale,
+              margin: PHONE_DISPLAY.margin,
             }}
           >
-            <PhoneFrame>
-              <div className="relative h-full">
-                <PhoneAppInner />
-              </div>
-            </PhoneFrame>
+            <div
+              style={{
+                transform: `scale(${PHONE_DISPLAY.scale})`,
+                transformOrigin: "top left",
+                width: PHONE_FRAME.outerWidth,
+                height: PHONE_FRAME.outerHeight,
+              }}
+            >
+              <PhoneFrame>
+                <div className="relative h-full">
+                  <PhoneAppInner />
+                </div>
+              </PhoneFrame>
+            </div>
           </div>
         </div>
-      </div>
-    </AppStateProvider>
+      </AppStateProvider>
+    </AuthProvider>
   );
 }

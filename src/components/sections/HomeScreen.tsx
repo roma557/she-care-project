@@ -18,9 +18,11 @@ const modules: { icon: string; title: string; desc: string; color: string; scree
 
 interface HomeScreenProps {
   onNavigate: (screen: AppScreen) => void;
+  onOpenNotifications?: () => void;
+  unreadCount?: number;
 }
 
-export function HomeScreen({ onNavigate }: HomeScreenProps) {
+export function HomeScreen({ onNavigate, onOpenNotifications, unreadCount = 0 }: HomeScreenProps) {
   const { currentCycleDay, assessmentResult, profile } = useAppState();
   const phase = getCyclePhase(currentCycleDay);
   const displayName = profile.name || "there";
@@ -41,13 +43,19 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-card"
+            onClick={onOpenNotifications}
+            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-card"
             aria-label="Notifications"
           >
             <svg className="h-4 w-4 text-pink-mid" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M13.7 21a2 2 0 01-3.4 0" strokeLinecap="round" />
             </svg>
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-mid px-1 text-[9px] font-bold text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
         </div>
       </AppHeader>

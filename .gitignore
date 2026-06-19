@@ -37,3 +37,6 @@ next-env.d.ts
 
 # reference assets
 ref*.png
+
+# local user database (dev)
+/data/

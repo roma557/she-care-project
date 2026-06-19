@@ -13,7 +13,7 @@ export function BottomNav({ active = "home", onNavigate }: BottomNavProps) {
     { id: "learn", label: "Learn", icon: BookIcon },
     { id: "chat", label: "Ask AI", icon: ChatIcon, center: true },
     { id: "cycle", label: "Cycle", icon: CalendarIcon },
-    { id: "wellness", label: "Wellness", icon: HeartIcon },
+    { id: "profile", label: "Profile", icon: UserIcon },
   ];
 
   return (
@@ -102,10 +102,11 @@ function CalendarIcon({ className }: { className?: string }) {
   );
 }
 
-function HeartIcon({ className }: { className?: string }) {
+function UserIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
     </svg>
   );
 }
