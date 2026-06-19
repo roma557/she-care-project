@@ -2,7 +2,6 @@
 
 import { AppNotification, getNotificationIcon, formatNotificationTime } from "@/lib/notifications";
 import { AppScreen } from "@/lib/phone";
-import { PHONE } from "@/lib/phone";
 
 interface NotificationsPanelProps {
   open: boolean;
@@ -46,7 +45,7 @@ export function NotificationsPanel({
 
       <div
         className="relative mt-auto flex max-h-[75%] flex-col rounded-t-3xl bg-white shadow-2xl"
-        style={{ paddingBottom: PHONE.safeBottom }}
+        style={{ paddingBottom: "var(--app-safe-bottom)" }}
       >
         <div className="flex items-center justify-between border-b border-pink-light/60 px-5 py-4">
           <div>

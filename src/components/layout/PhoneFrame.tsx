@@ -13,17 +13,16 @@ interface PhoneFrameProps {
 export function PhoneFrame({ children }: PhoneFrameProps) {
   return (
     <div
-      className="relative rounded-[3rem] bg-[#1a1a1a] p-[10px] shadow-phone"
-      style={{ width: PHONE.width + 20 }}
+      className="relative h-full w-full md:h-auto md:w-[413px] md:rounded-[3rem] md:bg-[#1a1a1a] md:p-[10px] md:shadow-phone"
     >
-      <div className="absolute -left-[3px] top-32 h-10 w-[3px] rounded-l bg-[#2a2a2a]" />
-      <div className="absolute -left-[3px] top-48 h-14 w-[3px] rounded-l bg-[#2a2a2a]" />
-      <div className="absolute -left-[3px] top-64 h-14 w-[3px] rounded-l bg-[#2a2a2a]" />
-      <div className="absolute -right-[3px] top-40 h-16 w-[3px] rounded-r bg-[#2a2a2a]" />
+      <div className="absolute -left-[3px] top-32 hidden h-10 w-[3px] rounded-l bg-[#2a2a2a] md:block" />
+      <div className="absolute -left-[3px] top-48 hidden h-14 w-[3px] rounded-l bg-[#2a2a2a] md:block" />
+      <div className="absolute -left-[3px] top-64 hidden h-14 w-[3px] rounded-l bg-[#2a2a2a] md:block" />
+      <div className="absolute -right-[3px] top-40 hidden h-16 w-[3px] rounded-r bg-[#2a2a2a] md:block" />
 
-      <div className="relative overflow-hidden rounded-[2.35rem] bg-cream">
+      <div className="relative h-full overflow-hidden bg-cream md:rounded-[2.35rem]">
         <div
-          className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex items-center justify-between px-6 text-[12px] font-medium text-[#2d2a26]"
+          className="pointer-events-none absolute left-0 right-0 top-0 z-30 hidden items-center justify-between px-6 text-[12px] font-medium text-[#2d2a26] md:flex"
           style={{ height: PHONE.safeTop, paddingTop: 12 }}
         >
           <StatusBarClock />
@@ -35,15 +34,12 @@ export function PhoneFrame({ children }: PhoneFrameProps) {
           </div>
         </div>
 
-        <div
-          className="relative overflow-hidden bg-cream"
-          style={{ width: PHONE.width, height: PHONE.height }}
-        >
+        <div className="relative h-full w-full overflow-hidden bg-cream md:w-[393px] md:h-[852px]">
           {children}
         </div>
 
         <div
-          className="pointer-events-none absolute bottom-[6px] left-1/2 z-30 h-[5px] -translate-x-1/2 rounded-full bg-[#2d2a26]/25"
+          className="pointer-events-none absolute bottom-[6px] left-1/2 z-30 hidden h-[5px] -translate-x-1/2 rounded-full bg-[#2d2a26]/25 md:block"
           style={{ width: 134 }}
         />
       </div>

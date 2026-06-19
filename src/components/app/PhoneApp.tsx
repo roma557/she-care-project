@@ -16,7 +16,7 @@ import { NotificationsPanel } from "@/components/sections/NotificationsPanel";
 import { OnboardingScreen } from "@/components/sections/OnboardingScreen";
 import { AppStateProvider, useAppState } from "@/context/AppStateContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { AppScreen, NavTab, OVERLAY_SCREENS, PHONE_DISPLAY, PHONE_FRAME } from "@/lib/phone";
+import { AppScreen, NavTab, OVERLAY_SCREENS } from "@/lib/phone";
 
 interface ScreenContentProps {
   screen: AppScreen;
@@ -127,25 +127,9 @@ export function PhoneApp() {
   return (
     <AuthProvider>
       <AppStateProvider>
-        <div
-          className="flex min-h-screen items-center justify-center bg-neutral-200"
-          style={{ padding: PHONE_DISPLAY.padding }}
-        >
-          <div
-            style={{
-              width: PHONE_FRAME.outerWidth * PHONE_DISPLAY.scale,
-              height: PHONE_FRAME.outerHeight * PHONE_DISPLAY.scale,
-              margin: PHONE_DISPLAY.margin,
-            }}
-          >
-            <div
-              style={{
-                transform: `scale(${PHONE_DISPLAY.scale})`,
-                transformOrigin: "top left",
-                width: PHONE_FRAME.outerWidth,
-                height: PHONE_FRAME.outerHeight,
-              }}
-            >
+        <div className="app-viewport-root">
+          <div className="app-viewport-clip">
+            <div className="app-viewport-scale">
               <PhoneFrame>
                 <div className="relative h-full">
                   <PhoneAppInner />

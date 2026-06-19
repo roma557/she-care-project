@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthContext";
+import { useMsg91 } from "@/hooks/useMsg91";
 import { normalizePhone } from "@/lib/auth-types";
 
 interface AuthScreenProps {
@@ -12,7 +13,9 @@ interface AuthScreenProps {
 }
 
 export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreenProps) {
-  const { sendOtp, verifyOtp } = useAuth();
+  const { sendOtp, verifyOtp, verifyMsg91AccessToken } = useAuth();
+  const msg91 = useMsg91();
+
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState(initialName);
@@ -21,22 +24,39 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
   const [error, setError] = useState("");
   const [devOtp, setDevOtp] = useState("");
 
+  const useMsg91Flow = msg91.enabled;
+
   async function handleSendOtp() {
     const normalized = normalizePhone(phone);
     if (!normalized) {
       setError("Enter a valid 10-digit mobile number");
       return;
     }
+
     setLoading(true);
     setError("");
-    const result = await sendOtp(phone, name);
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+
+    try {
+      if (useMsg91Flow) {
+        if (!msg91.ready) {
+          setError(msg91.error ?? "MSG91 is loading — please wait a moment");
+          return;
+        }
+        await msg91.sendOtp(phone);
+      } else {
+        const result = await sendOtp(phone, name);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        if (result.devOtp) setDevOtp(result.devOtp);
+      }
+      setStep("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
-    if (result.devOtp) setDevOtp(result.devOtp);
-    setStep("otp");
   }
 
   async function handleVerify() {
@@ -44,15 +64,49 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
       setError("Enter the 4-digit OTP");
       return;
     }
+
     setLoading(true);
     setError("");
-    const result = await verifyOtp(phone, otp, name);
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+
+    try {
+      if (useMsg91Flow) {
+        const accessToken = await msg91.verifyOtp(otp);
+        const result = await verifyMsg91AccessToken(accessToken, name);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+      } else {
+        const result = await verifyOtp(phone, otp, name);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+      }
+      onSuccess?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
     }
-    onSuccess?.();
+  }
+
+  async function handleResend() {
+    setLoading(true);
+    setError("");
+    try {
+      if (useMsg91Flow) {
+        await msg91.retryOtp();
+      } else {
+        const result = await sendOtp(phone, name);
+        if (result.error) setError(result.error);
+        else if (result.devOtp) setDevOtp(result.devOtp);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend OTP");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -76,6 +130,12 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
           ? "Your account links your plan, profile & notifications across devices."
           : `We sent a 4-digit code to +91 ${phone.replace(/\D/g, "").slice(-10)}`}
       </p>
+
+      {useMsg91Flow && !msg91.ready && step === "phone" && (
+        <p className="mt-3 rounded-xl bg-purple-light/60 px-3 py-2 text-[10px] text-purple-dark">
+          Connecting to MSG91 secure OTP…
+        </p>
+      )}
 
       {step === "phone" ? (
         <div className="mt-6 space-y-4">
@@ -111,7 +171,7 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
           <button
             type="button"
             onClick={handleSendOtp}
-            disabled={loading || phone.replace(/\D/g, "").length < 10}
+            disabled={loading || phone.replace(/\D/g, "").length < 10 || (useMsg91Flow && !msg91.ready)}
             className="w-full rounded-full bg-pink-mid py-3 text-sm font-medium text-white disabled:opacity-40"
           >
             {loading ? "Sending…" : "Send OTP"}
@@ -141,13 +201,23 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
           >
             {loading ? "Verifying…" : "Verify & sign in"}
           </button>
-          <button
-            type="button"
-            onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
-            className="w-full text-xs text-gray-500"
-          >
-            Change number
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
+              className="flex-1 text-xs text-gray-500"
+            >
+              Change number
+            </button>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={loading}
+              className="flex-1 text-xs font-medium text-pink-mid disabled:opacity-40"
+            >
+              Resend OTP
+            </button>
+          </div>
         </div>
       )}
 
@@ -156,7 +226,9 @@ export function AuthScreen({ onSuccess, onCancel, initialName = "" }: AuthScreen
       )}
 
       <p className="mt-6 text-[9px] leading-relaxed text-gray-400">
-        Paid plans are tied to your phone number. Sign in on any device to restore your subscription.
+        {useMsg91Flow
+          ? "OTP is sent securely via MSG91. Paid plans are tied to your verified phone number."
+          : "Paid plans are tied to your phone number. Sign in on any device to restore your subscription."}
       </p>
     </AppShell>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { NavTab, PHONE } from "@/lib/phone";
+import { NavTab } from "@/lib/phone";
 
 interface BottomNavProps {
   active?: NavTab;
@@ -19,7 +19,7 @@ export function BottomNav({ active = "home", onNavigate }: BottomNavProps) {
   return (
     <nav
       className="absolute bottom-0 left-0 right-0 z-20 border-t border-pink-light/60 bg-white/95 px-2 pt-2 backdrop-blur-md"
-      style={{ paddingBottom: PHONE.safeBottom }}
+      style={{ paddingBottom: "var(--app-safe-bottom)" }}
     >
       <div className="flex items-end justify-around">
         {items.map((item) => {

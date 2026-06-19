@@ -23,11 +23,25 @@
   --peach: #f4c4a8;
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-sans);
-  background: #e5e5e5;
+  background: var(--cream);
   color: #2d2a26;
   overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  body {
+    background: #e5e5e5;
+  }
 }
 
 @layer utilities {
@@ -59,12 +73,64 @@ body {
   }
 }
 
-/* Phone frame CSS vars — import PHONE from @/lib/phone for JS usage */
+/* Layout tokens — mockup values on desktop, device safe areas on phones */
 :root {
   --phone-w: 393px;
   --phone-h: 852px;
-  --phone-safe-top: 54px;
-  --phone-safe-bottom: 20px;
-  --phone-pad-x: 20px;
+  --app-safe-top: env(safe-area-inset-top, 12px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-pad-x: 20px;
   --phone-nav-h: 72px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --app-safe-top: 54px;
+    --app-safe-bottom: 20px;
+  }
+}
+
+/* Phone mockup — desktop only; phones use full viewport */
+.app-viewport-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--cream);
+}
+
+.app-viewport-clip {
+  height: 100%;
+  width: 100%;
+}
+
+.app-viewport-scale {
+  height: 100%;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .app-viewport-root {
+    position: static;
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    background: #e5e5e5;
+    padding: 3rem;
+  }
+
+  .app-viewport-clip {
+    width: 322px;
+    height: 680px;
+    margin: 32px;
+    overflow: hidden;
+  }
+
+  .app-viewport-scale {
+    transform: scale(0.78);
+    transform-origin: top left;
+    width: 413px;
+    height: 872px;
+  }
 }

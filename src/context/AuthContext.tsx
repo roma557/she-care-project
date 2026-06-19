@@ -19,6 +19,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   sendOtp: (phone: string, name?: string) => Promise<{ devOtp?: string; error?: string }>;
   verifyOtp: (phone: string, otp: string, name?: string) => Promise<{ error?: string }>;
+  verifyMsg91AccessToken: (accessToken: string, name?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   activatePlan: (tier: SubscriptionTier) => Promise<{ error?: string }>;
@@ -154,6 +155,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   }, []);
 
+  const verifyMsg91AccessToken = useCallback(async (accessToken: string, name?: string) => {
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "Verification failed" };
+    setUser(data.user);
+    return {};
+  }, []);
+
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
@@ -181,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         sendOtp,
         verifyOtp,
+        verifyMsg91AccessToken,
         logout,
         refreshUser,
         activatePlan,

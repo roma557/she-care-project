@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { PHONE } from "@/lib/phone";
 
 interface AppShellProps {
   children: ReactNode;
@@ -14,16 +13,16 @@ interface AppShellProps {
  */
 export function AppShell({ children, hasNav = true, className = "" }: AppShellProps) {
   const bottomPad = hasNav
-    ? PHONE.navHeight + PHONE.safeBottom + 12
-    : PHONE.safeBottom + 16;
+    ? "calc(var(--phone-nav-h) + var(--app-safe-bottom) + 12px)"
+    : "calc(var(--app-safe-bottom) + 16px)";
 
   return (
     <div
-      className={`hide-scrollbar h-full overflow-y-auto overflow-x-hidden ${className}`}
+      className={`hide-scrollbar h-full overflow-y-auto overflow-x-hidden overscroll-contain ${className}`}
       style={{
-        paddingTop: PHONE.safeTop,
-        paddingLeft: PHONE.paddingX,
-        paddingRight: PHONE.paddingX,
+        paddingTop: "var(--app-safe-top)",
+        paddingLeft: "var(--app-pad-x)",
+        paddingRight: "var(--app-pad-x)",
         paddingBottom: bottomPad,
       }}
     >
@@ -59,9 +58,9 @@ export function AppFullBleed({
     <div
       className={className}
       style={{
-        marginLeft: -PHONE.paddingX,
-        marginRight: -PHONE.paddingX,
-        width: PHONE.width,
+        marginLeft: "calc(-1 * var(--app-pad-x))",
+        marginRight: "calc(-1 * var(--app-pad-x))",
+        width: "calc(100% + 2 * var(--app-pad-x))",
       }}
     >
       {children}
