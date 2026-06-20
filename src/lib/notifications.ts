@@ -124,30 +124,32 @@ export function createNotification(
   };
 }
 
-export function getNotificationIcon(type: NotificationType): string {
+import type { IconName } from "@/components/ui/icons";
+
+export function getNotificationIcon(type: NotificationType): IconName {
   switch (type) {
     case "period_reminder":
-      return "📅";
+      return "calendar";
     case "wellness_tip":
-      return "💜";
+      return "heart";
     case "assessment_reminder":
-      return "📋";
+      return "clipboard";
     case "plan_expiry":
-      return "⭐";
+      return "star";
     case "cycle_insight":
-      return "🌸";
+      return "flower";
     case "symptom_checkin":
-      return "✏️";
+      return "pencil";
     case "care_plan":
-      return "💝";
+      return "heart";
     case "doctor_awareness":
-      return "🩺";
+      return "shield";
     case "learn_content":
-      return "📖";
+      return "book";
     case "irregular_cycle":
-      return "🔄";
+      return "refresh";
     default:
-      return "🔔";
+      return "bell";
   }
 }
 

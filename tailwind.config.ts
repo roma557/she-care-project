@@ -24,6 +24,24 @@ const config: Config = {
           faint: "#B89AA2",
         },
         gold: "#C9956A",
+        plan: {
+          starter: {
+            light: "#E8F0FA",
+            mid: "#4A7FD4",
+            deep: "#1E4D8C",
+          },
+          plus: {
+            light: "#F0EBFA",
+            mid: "#8B6BC4",
+            deep: "#4A2D7A",
+          },
+          premium: {
+            light: "#FBF3E4",
+            mid: "#C9956A",
+            deep: "#8B6914",
+            dark: "#6B5010",
+          },
+        },
         /* legacy aliases — mapped to SheCare palette */
         pink: {
           dark: "#C4647A",
@@ -64,14 +82,10 @@ const config: Config = {
         card: "20px",
         icon: "18px",
       },
-      animation: {
-        float: "float 4s ease-in-out infinite",
-      },
-      keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-6px)" },
-        },
+      transitionDuration: {
+        perf: "var(--transition-base)",
+        "perf-fast": "var(--transition-fast)",
+        "perf-slow": "var(--transition-slow)",
       },
     },
   },

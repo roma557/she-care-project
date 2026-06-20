@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const suggestions = [
   "Can I get pregnant with PCOS?",
@@ -18,18 +20,36 @@ interface ChatMessage {
 }
 
 export function ChatScreen() {
+  const { isAuthenticated } = useAuth();
+  const { remaining, refresh } = usePermissions();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiRemaining, setAiRemaining] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch("/api/chat")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.unlimited) setAiRemaining(null);
+          else setAiRemaining(d.remaining ?? null);
+        });
+    }
+  }, [isAuthenticated, messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const displayRemaining = remaining("ai_coach") ?? aiRemaining;
+
   async function sendMessage(text: string) {
     const question = text.trim();
     if (!question || loading) return;
+
+    if (!isAuthenticated) return;
 
     const userMsg: ChatMessage = { role: "user", content: question };
     const nextMessages = [...messages, userMsg];
@@ -44,6 +64,23 @@ export function ChatScreen() {
         body: JSON.stringify({ messages: nextMessages }),
       });
       const data = await res.json();
+
+      if (res.status === 429) {
+        setMessages([
+          ...nextMessages,
+          {
+            role: "assistant",
+            content: data.message ?? "Monthly AI limit reached. Upgrade your plan for more messages.",
+          },
+        ]);
+        refresh();
+        return;
+      }
+
+      if (data.unlimited === false && typeof data.remaining === "number") {
+        setAiRemaining(data.remaining);
+      }
+
       setMessages([
         ...nextMessages,
         {
@@ -53,6 +90,7 @@ export function ChatScreen() {
           exploreLabel: data.exploreLabel ?? "Explore more online",
         },
       ]);
+      refresh();
     } catch {
       setMessages([
         ...nextMessages,
@@ -72,6 +110,16 @@ export function ChatScreen() {
     sendMessage(input);
   }
 
+  if (!isAuthenticated) {
+    return (
+      <AppShell className="bg-cream">
+        <h2 className="font-serif text-xl text-purple-dark">AI Coach</h2>
+        <p className="mt-2 text-xs text-gray-600">Sign in to chat with your AI wellness companion.</p>
+        <p className="mt-4 text-[10px] text-gray-500">Free tier includes 5 messages/month after sign-in.</p>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell className="bg-cream">
       <div className="mb-4 flex items-center justify-between border-b border-pink-light/50 pb-3">
@@ -79,6 +127,9 @@ export function ChatScreen() {
           <div className={`h-2 w-2 rounded-full ${loading ? "animate-pulse bg-amber-mid" : "bg-teal-mid"}`} />
           <span className="text-sm font-medium text-purple-dark">AI Companion</span>
         </div>
+        {displayRemaining !== null && (
+          <span className="text-[10px] text-gray-500">{displayRemaining} messages left</span>
+        )}
       </div>
 
       <div className="space-y-4 pb-4">

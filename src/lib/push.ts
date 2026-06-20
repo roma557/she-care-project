@@ -2,6 +2,8 @@
 
 export type PushPermission = "default" | "granted" | "denied" | "unsupported";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export function getPushPermission(): PushPermission {
   if (typeof window === "undefined" || !("Notification" in window)) {
     return "unsupported";
@@ -9,8 +11,28 @@ export function getPushPermission(): PushPermission {
   return Notification.permission as PushPermission;
 }
 
+/** Remove stale service workers that break Next.js dev assets and HMR. */
+export async function unregisterServiceWorkers(): Promise<void> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    return;
+  }
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+}
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    return null;
+  }
+
+  if (isDev) {
+    await unregisterServiceWorkers();
     return null;
   }
 

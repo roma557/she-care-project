@@ -10,6 +10,10 @@ export interface AuthUser {
   notificationPrefs: NotificationPreferences;
   aiQuestionsUsed: number;
   aiQuestionsResetAt: string;
+  /** Populated by auth API responses only */
+  hasPassword?: boolean;
+  /** Paid user who must set a password before using the app */
+  needsPasswordSetup?: boolean;
 }
 
 export interface SessionPayload {

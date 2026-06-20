@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-server";
-import { findUserById, getUserAppData, setUserAppData } from "@/lib/users-db";
+import {
+  getUserAppDataAsync,
+  setUserAppDataAsync,
+  findUserByIdAsync,
+  hydrateUserSubscription,
+} from "@/lib/db";
+import { resolveEffectiveTier } from "@/lib/permissions";
+import { trimSyncPayloadByTier } from "@/lib/sync-trim";
 import type { AppSyncPayload } from "@/lib/sync-types";
 
 export async function GET() {
@@ -9,7 +16,9 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const data = getUserAppData(user.id);
+  const raw = await getUserAppDataAsync(user.id);
+  const tier = await resolveEffectiveTier(user.id);
+  const data = raw ? trimSyncPayloadByTier(raw, tier) : null;
   return NextResponse.json({ data });
 }
 
@@ -24,25 +33,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid sync payload" }, { status: 400 });
   }
 
-  const existing = getUserAppData(user.id);
+  const tier = await resolveEffectiveTier(user.id);
+  const trimmed = trimSyncPayloadByTier(body.data, tier);
+
+  const existing = await getUserAppDataAsync(user.id);
   if (
     existing?.updatedAt &&
-    body.data.updatedAt &&
-    existing.updatedAt > body.data.updatedAt
+    trimmed.updatedAt &&
+    existing.updatedAt > trimmed.updatedAt
   ) {
-    return NextResponse.json({ data: existing, merged: false });
+    return NextResponse.json({
+      data: trimSyncPayloadByTier(existing, tier),
+      merged: false,
+    });
   }
 
-  const saved = setUserAppData(user.id, {
-    ...body.data,
+  const saved = await setUserAppDataAsync(user.id, {
+    ...trimmed,
     updatedAt: new Date().toISOString(),
   });
 
-  const record = findUserById(user.id);
+  const record = await findUserByIdAsync(user.id);
   if (!record) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const { notifications: _, appData: __, ...safeUser } = record;
-  return NextResponse.json({ data: saved, user: safeUser, merged: true });
+  const hydrated = await hydrateUserSubscription(record);
+  const { notifications: _, ...safeUser } = hydrated;
+  return NextResponse.json({
+    data: trimSyncPayloadByTier(saved, tier),
+    user: safeUser,
+    merged: true,
+  });
 }

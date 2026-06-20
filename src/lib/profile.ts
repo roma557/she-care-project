@@ -10,6 +10,9 @@ export interface UserProfile {
   activityLevel: number;
   /** Full clinical intake from first launch */
   intakeAnswers?: IntakeAnswers;
+  /** Premium pregnancy mode */
+  pregnancyMode?: boolean;
+  pregnancyStartDate?: string | null;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {

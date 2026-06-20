@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizePhone, createDefaultUser } from "@/lib/auth-types";
-import { storeOtp } from "@/lib/users-db";
+import { storeOtpAsync } from "@/lib/db";
 
 function generateOtp(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   const code = generateOtp();
-  storeOtp(phone, code, name || undefined);
+  await storeOtpAsync(phone, code, name || undefined);
 
   // In production, send via MSG91 / Twilio. Dev returns OTP for testing.
   const isDev = process.env.NODE_ENV !== "production";

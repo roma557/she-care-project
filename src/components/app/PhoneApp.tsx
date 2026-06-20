@@ -7,8 +7,15 @@ import { ScreenTransition } from "@/components/ui/ScreenTransition";
 import { HomeScreen } from "@/components/sections/HomeScreen";
 import { ChatScreen } from "@/components/sections/ChatScreen";
 import { CycleScreen } from "@/components/sections/CycleScreen";
+import { CycleHistoryScreen } from "@/components/sections/CycleHistoryScreen";
 import { LearnScreen } from "@/components/sections/LearnScreen";
+import { ReportsScreen } from "@/components/sections/ReportsScreen";
+import { PregnancyScreen } from "@/components/sections/PregnancyScreen";
+import { PcosDashboardScreen } from "@/components/sections/PcosDashboardScreen";
+import { WearablesScreen } from "@/components/sections/WearablesScreen";
+import { PartnerScreen } from "@/components/sections/PartnerScreen";
 import { WellnessScreen } from "@/components/sections/WellnessScreen";
+import { InsightsScreen } from "@/components/sections/InsightsScreen";
 import { AssessmentScreen } from "@/components/sections/AssessmentScreen";
 import { CarePlanScreen } from "@/components/sections/CarePlanScreen";
 import { ProfileScreen } from "@/components/sections/ProfileScreen";
@@ -16,11 +23,16 @@ import { NotificationsPanel } from "@/components/sections/NotificationsPanel";
 import { OnboardingScreen } from "@/components/sections/OnboardingScreen";
 import { AppStateProvider, useAppState } from "@/context/AppStateContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { DevPlanPreviewProvider } from "@/context/DevPlanPreviewContext";
+import { PlanRouteNav } from "@/components/plans/PlanRouteNav";
+import { isDevPlanTabsEnabled } from "@/lib/subscription/plan-preview";
+import type { SubscriptionTier } from "@/lib/subscription/types";
 import { AppScreen, NavTab, OVERLAY_SCREENS } from "@/lib/phone";
 import { buildNotificationContext } from "@/lib/notifications";
-import { getEffectiveTier } from "@/lib/subscription";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAwarenessPush } from "@/hooks/useAwarenessPush";
 import { useCloudSync } from "@/hooks/useCloudSync";
+import { SetPasswordScreen } from "@/components/sections/SetPasswordScreen";
 
 interface ScreenContentProps {
   screen: AppScreen;
@@ -33,12 +45,26 @@ function ScreenContent({ screen, onNavigate }: ScreenContentProps) {
       return <HomeScreen onNavigate={onNavigate} />;
     case "learn":
       return <LearnScreen />;
+    case "reports":
+      return <ReportsScreen />;
+    case "pregnancy":
+      return <PregnancyScreen onBack={() => onNavigate("profile")} />;
+    case "pcos-dashboard":
+      return <PcosDashboardScreen onBack={() => onNavigate("profile")} />;
+    case "wearables":
+      return <WearablesScreen onBack={() => onNavigate("profile")} />;
+    case "partner":
+      return <PartnerScreen onBack={() => onNavigate("profile")} />;
     case "chat":
       return <ChatScreen />;
     case "cycle":
-      return <CycleScreen />;
+      return <CycleScreen onNavigate={onNavigate} />;
+    case "cycle-history":
+      return <CycleHistoryScreen onBack={() => onNavigate("cycle")} />;
     case "wellness":
       return <WellnessScreen onBack={() => onNavigate("home")} />;
+    case "insights":
+      return <InsightsScreen onBack={() => onNavigate("home")} />;
     case "profile":
       return <ProfileScreen onNavigate={onNavigate} />;
     case "assessment":
@@ -71,7 +97,11 @@ function PhoneAppInner() {
     markNotificationRead,
     dismissNotification,
     markAllNotificationsRead,
+    needsPasswordSetup,
+    setPassword,
+    refreshUser,
   } = useAuth();
+  const { tier: effectiveTier } = usePermissions();
 
   const [screen, setScreen] = useState<AppScreen>("home");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -97,7 +127,7 @@ function PhoneAppInner() {
       primaryGoal: profile.intakeAnswers?.primaryGoal,
       lastSymptomSaveDate: lastSymptomSaveDate ?? undefined,
       subscriptionExpiresAt: user?.subscription.expiresAt ?? null,
-      subscriptionTier: user ? getEffectiveTier(user.subscription) : "free",
+      subscriptionTier: effectiveTier,
     });
 
     syncNotifications(context);
@@ -111,6 +141,7 @@ function PhoneAppInner() {
     assessmentResult,
     lastSymptomSaveDate,
     user,
+    effectiveTier,
     syncNotifications,
   ]);
 
@@ -128,7 +159,7 @@ function PhoneAppInner() {
         primaryGoal: profile.intakeAnswers?.primaryGoal,
         lastSymptomSaveDate: lastSymptomSaveDate ?? undefined,
         subscriptionExpiresAt: user?.subscription.expiresAt ?? null,
-        subscriptionTier: user ? getEffectiveTier(user.subscription) : "free",
+        subscriptionTier: effectiveTier,
       });
       syncNotifications(context);
     }
@@ -145,6 +176,7 @@ function PhoneAppInner() {
     assessmentResult,
     lastSymptomSaveDate,
     user,
+    effectiveTier,
     syncNotifications,
   ]);
 
@@ -166,6 +198,21 @@ function PhoneAppInner() {
 
   if (!profile.onboardingComplete) {
     return <OnboardingScreen />;
+  }
+
+  if (needsPasswordSetup) {
+    return (
+      <SetPasswordScreen
+        title="Create your password"
+        description="Required for paid plans — use this to sign in without OTP next time."
+        submitLabel="Continue to app"
+        onSubmit={async (pwd, confirm) => {
+          const result = await setPassword(pwd, confirm);
+          if (!result.error) await refreshUser();
+          return result;
+        }}
+      />
+    );
   }
 
   return (
@@ -199,21 +246,36 @@ function PhoneAppInner() {
   );
 }
 
-export function PhoneApp() {
+interface PhoneAppProps {
+  routePreviewTier?: SubscriptionTier;
+}
+
+export function PhoneApp(props: PhoneAppProps = {}) {
+  const { routePreviewTier } = props;
+  const isRoutePreview = routePreviewTier !== undefined;
+  const showDesktopPlanNav = isRoutePreview || isDevPlanTabsEnabled();
+  const activeTier = routePreviewTier ?? "free";
+
   return (
     <AuthProvider>
       <AppStateProvider>
-        <div className="app-viewport-root">
-          <div className="app-viewport-clip">
-            <div className="app-viewport-scale">
-              <PhoneFrame>
-                <div className="relative h-full">
-                  <PhoneAppInner />
-                </div>
-              </PhoneFrame>
+        <DevPlanPreviewProvider
+          initialTier={isRoutePreview ? activeTier : undefined}
+          routePreview={isRoutePreview}
+        >
+          <div className="app-viewport-root">
+            {showDesktopPlanNav && <PlanRouteNav activeTier={activeTier} />}
+            <div className="app-viewport-clip">
+              <div className="app-viewport-scale">
+                <PhoneFrame>
+                  <div className="relative h-full">
+                    <PhoneAppInner />
+                  </div>
+                </PhoneFrame>
+              </div>
             </div>
           </div>
-        </div>
+        </DevPlanPreviewProvider>
       </AppStateProvider>
     </AuthProvider>
   );

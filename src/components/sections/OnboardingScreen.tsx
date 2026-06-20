@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BtnOutline, BtnRose } from "@/components/ui/Button";
+import { AppIcon } from "@/components/ui/icons";
 import { AuthScreen } from "@/components/sections/AuthScreen";
 import { IntakeFlow } from "@/components/sections/onboarding/IntakeFlow";
 import { useAppState } from "@/context/AppStateContext";
 import { useAuth } from "@/context/AuthContext";
-import { INTAKE_STEPS } from "@/lib/intake";
+import { INTAKE_STEPS, EMPTY_INTAKE_ANSWERS, buildIntakePlan } from "@/lib/intake";
 import type { IntakeAnswers, IntakePlan } from "@/lib/intake";
 
 type OnboardingStep = "splash" | "intake";
@@ -25,6 +26,20 @@ export function OnboardingScreen() {
       intakeAnswers: answers,
       intakePlan: plan,
     });
+  }
+
+  function handleSkipIntake() {
+    const answers: IntakeAnswers = {
+      ...EMPTY_INTAKE_ANSWERS,
+      name: user?.name ?? "",
+      cycleLength: 28,
+      cycleRegularity: "irregular",
+      primaryGoal: "understand",
+      emotionalState: "hopeful",
+      concerns: ["track-cycle"],
+      diagnoses: ["none"],
+    };
+    handleIntakeComplete(answers, buildIntakePlan(answers));
   }
 
   if (showAuth) {
@@ -49,8 +64,8 @@ export function OnboardingScreen() {
             <div className="absolute bottom-[22%] right-[22%] h-14 w-14 rounded-full bg-white/25" />
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-float flex h-16 w-16 items-center justify-center rounded-icon border border-white/50 bg-white/30 text-2xl shadow-glass-card backdrop-blur-[12px]">
-              🌸
+            <div className="animate-float flex h-16 w-16 items-center justify-center rounded-icon border border-white/50 bg-white/30 text-rose-deep shadow-glass-card backdrop-blur-[12px]">
+              <AppIcon name="chat" className="h-8 w-8 text-white" />
             </div>
           </div>
         </div>
@@ -63,7 +78,11 @@ export function OnboardingScreen() {
             <h1 className="font-serif text-[2.4rem] font-light tracking-wide text-ink">
               She <span className="italic">Care</span>
             </h1>
-            <p className="mt-3 text-xs tracking-[0.35em] text-ink-faint">✦ ✦ ✦</p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-rose-soft" />
+              <span className="h-1 w-1 rounded-full bg-rose-mid" />
+              <span className="h-1 w-1 rounded-full bg-rose-soft" />
+            </div>
             <p className="mt-4 max-w-[280px] text-sm font-light leading-relaxed text-ink-mid">
               A calm companion for PCOS, cycle health &amp; women&apos;s wellbeing — built with care, not judgment.
             </p>
@@ -74,6 +93,13 @@ export function OnboardingScreen() {
             <BtnOutline onClick={() => setShowAuth(true)}>
               I already have an account
             </BtnOutline>
+            <button
+              type="button"
+              onClick={handleSkipIntake}
+              className="w-full py-2 text-center text-[0.72rem] font-medium tracking-wide text-ink-faint underline underline-offset-2 transition-colors active:text-ink-mid"
+            >
+              Skip questions for now
+            </button>
             <p className="pt-1 text-center text-[0.65rem] font-light leading-relaxed text-ink-faint">
               A short, private questionnaire (~3 min) helps personalise your support.
               <br />

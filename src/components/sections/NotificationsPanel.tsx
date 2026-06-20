@@ -1,6 +1,7 @@
 "use client";
 
 import { AppNotification, getNotificationIcon, formatNotificationTime } from "@/lib/notifications";
+import { AppIcon } from "@/components/ui/icons";
 import { AppScreen } from "@/lib/phone";
 
 interface NotificationsPanelProps {
@@ -80,7 +81,7 @@ export function NotificationsPanel({
         <div className="hide-scrollbar flex-1 overflow-y-auto px-4 py-3">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center py-12 text-center">
-              <span className="text-4xl">🔔</span>
+              <AppIcon name="bell" className="h-10 w-10 text-ink-faint" />
               <p className="mt-3 text-sm text-gray-600">No notifications yet</p>
               <p className="mt-1 text-[10px] text-gray-400">
                 We&apos;ll share cycle awareness, wellness tips & PCOS education
@@ -100,7 +101,7 @@ export function NotificationsPanel({
                       onClick={() => handleTap(n)}
                       className="flex flex-1 gap-3 text-left"
                     >
-                      <span className="text-xl">{getNotificationIcon(n.type)}</span>
+                      <AppIcon name={getNotificationIcon(n.type)} className="mt-0.5 h-5 w-5 shrink-0 text-rose-deep" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <p className={`text-xs font-medium ${n.read ? "text-gray-600" : "text-purple-dark"}`}>

@@ -33,6 +33,20 @@ export function formatMonthYear(date: Date = new Date()): string {
   return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return "Not synced";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 export function formatTodayLong(date: Date = new Date()): string {
   return date.toLocaleDateString(undefined, {
     weekday: "long",

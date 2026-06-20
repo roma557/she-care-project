@@ -1,19 +1,28 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { AppShell, AppFullBleed } from "@/components/layout/AppShell";
 import { CycleCard } from "@/components/ui/CycleCard";
 import { InsightCard } from "@/components/ui/InsightCard";
 import { SymptomChip } from "@/components/ui/SymptomChip";
+import { PlanHomeDashboard } from "@/components/sections/plan/PlanHomeDashboard";
 import { useAppState } from "@/context/AppStateContext";
-import { ALL_SYMPTOMS, getCyclePhase } from "@/lib/cycle";
+import { usePermissions } from "@/hooks/usePermissions";
+import {
+  ALL_SYMPTOMS,
+  getCyclePhase,
+  getDaysToOvulation,
+  getLoggedPeriodLength,
+  getPhaseProgress,
+  getPlusCycleInsights,
+} from "@/lib/cycle";
+import { buildHomeInsightCards } from "@/lib/insights";
 import { getGreeting } from "@/lib/profile";
+import { toDateKey } from "@/lib/datetime";
 import { AppScreen } from "@/lib/phone";
-
-const INSIGHTS = [
-  { icon: "💧", title: "Hydration", value: "6", unit: "glasses" },
-  { icon: "🌙", title: "Sleep", value: "7.5", unit: "hrs" },
-  { icon: "🧘", title: "Stress", value: "Low", unit: "" },
-];
+import type { DbWearableDevice } from "@/lib/db/types";
+import { PLAN_CARD_THEME } from "@/lib/subscription/plan-card-theme";
+import type { CycleCardVariant } from "@/lib/subscription/plan-card-theme";
 
 interface HomeScreenProps {
   onNavigate: (screen: AppScreen) => void;
@@ -26,18 +35,65 @@ export function HomeScreen({
   onOpenNotifications,
   unreadCount = 0,
 }: HomeScreenProps) {
-  const { currentCycleDay, profile, toggleSymptom, cycle, assessmentResult } = useAppState();
+  const { currentCycleDay, profile, toggleSymptom, cycle, assessmentResult, todayInsights, incrementHydration, hydrateTodayLog, saveSymptoms } =
+    useAppState();
+  const { tier, can } = usePermissions();
   const phase = getCyclePhase(currentCycleDay);
   const displayName = profile.name || "there";
   const cycleLength = profile.cycleLength || 28;
+  const todayKey = useMemo(() => toDateKey(new Date()), []);
+  const todayLog = cycle.dailyLogs[todayKey];
+  const periodLength = Math.max(
+    5,
+    getLoggedPeriodLength(cycle.markedDays, cycle.cycleStartDate) || 5,
+  );
+  const phaseProgress = getPhaseProgress(currentCycleDay, cycleLength, periodLength);
+  const daysToOvulation = getDaysToOvulation(currentCycleDay);
+  const insightCards = buildHomeInsightCards(todayInsights);
+  const cycleVariant: CycleCardVariant =
+    tier === "plus" ? "plus" : tier === "premium" ? "premium" : "default";
+  const showPlanDashboard = tier === "plus" || tier === "premium";
+  const isPremium = tier === "premium";
+  const isPlus = tier === "plus";
+  const plusInsights = isPlus ? getPlusCycleInsights(currentCycleDay, cycleLength) : undefined;
+  const tierTheme =
+    cycleVariant === "plus" || cycleVariant === "premium"
+      ? PLAN_CARD_THEME[cycleVariant]
+      : null;
+  const sectionLabelClass = tierTheme?.sectionLabel ?? "text-ink-faint";
+  const sectionLinkClass = tierTheme?.link ?? "text-rose-deep";
+
+  const [flowLevel, setFlowLevel] = useState(() => todayLog?.flowLevel ?? 2);
+  const [wearables, setWearables] = useState<DbWearableDevice[]>([]);
+
+  useEffect(() => {
+    hydrateTodayLog();
+    setFlowLevel(todayLog?.flowLevel ?? 2);
+  }, [todayKey, hydrateTodayLog, todayLog?.flowLevel]);
+
+  useEffect(() => {
+    if (!isPremium || !can("wearable_sync")) return;
+    fetch("/api/wearables")
+      .then((res) => res.json())
+      .then((data) => setWearables(data.devices ?? []))
+      .catch(() => setWearables([]));
+  }, [isPremium, can]);
+
+  const latestWearable = wearables[0];
+  const wearableSyncAt = latestWearable?.lastSyncAt ?? null;
+  const wearableConnected = wearables.length > 0;
+
+  function handleFlowChange(level: number) {
+    setFlowLevel(level);
+    saveSymptoms(level);
+  }
 
   return (
     <AppShell className="bg-bg">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-serif text-2xl text-ink">
-            {getGreeting()}, {displayName}{" "}
-            <span className="text-rose-soft">✦</span>
+            {getGreeting()}, {displayName}
           </h1>
         </div>
         <button
@@ -76,39 +132,71 @@ export function HomeScreen({
       )}
 
       <CycleCard
+        variant={cycleVariant}
         phaseName={phase.name}
         cycleDay={currentCycleDay}
         cycleLength={cycleLength}
         message={phase.message}
+        phaseDay={phaseProgress.phaseDay}
+        phaseTotal={phaseProgress.phaseTotal}
+        subtitleDay={phaseProgress.subtitleDay}
+        subtitleTotal={phaseProgress.subtitleTotal}
+        daysToOvulation={daysToOvulation}
+        flowLevel={flowLevel}
+        onFlowChange={isPlus || isPremium ? handleFlowChange : undefined}
+        wearableSyncAt={wearableSyncAt}
+        wearableConnected={wearableConnected}
+        onWearableTap={isPremium ? () => onNavigate("wearables") : undefined}
+        plusInsights={plusInsights}
+        onInsightTap={
+          plusInsights ? () => onNavigate(plusInsights.insightScreen) : undefined
+        }
       />
 
+      {showPlanDashboard && (
+        <PlanHomeDashboard tier={tier as "plus" | "premium"} onNavigate={onNavigate} />
+      )}
+
       <div className="mb-3 mt-6 flex items-center justify-between">
-        <p className="font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] text-ink-faint">
+        <p
+          className={`font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] ${sectionLabelClass}`}
+        >
           Today&apos;s insights
         </p>
         <button
           type="button"
-          onClick={() => onNavigate("learn")}
-          className="text-[0.65rem] font-medium text-rose-deep"
+          onClick={() => onNavigate("insights")}
+          className={`text-[0.65rem] font-medium ${sectionLinkClass}`}
         >
           See all
         </button>
       </div>
 
       <AppFullBleed className="hide-scrollbar mb-6 flex gap-3 overflow-x-auto px-7 pb-1">
-        {INSIGHTS.map((item) => (
-          <InsightCard key={item.title} {...item} />
+        {insightCards.map((item) => (
+          <InsightCard
+            key={item.title}
+            {...item}
+            variant={cycleVariant}
+            onClick={
+              item.title === "Hydration"
+                ? incrementHydration
+                : () => onNavigate("insights")
+            }
+          />
         ))}
       </AppFullBleed>
 
       <div className="mb-3 flex items-center justify-between">
-        <p className="font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] text-ink-faint">
+        <p
+          className={`font-sans text-[0.6rem] font-medium uppercase tracking-[0.2em] ${sectionLabelClass}`}
+        >
           Log symptoms
         </p>
         <button
           type="button"
-          onClick={() => onNavigate("cycle")}
-          className="text-[0.65rem] font-medium text-rose-deep"
+          onClick={() => onNavigate("cycle-history")}
+          className={`text-[0.65rem] font-medium ${sectionLinkClass}`}
         >
           History
         </button>
@@ -121,6 +209,7 @@ export function HomeScreen({
             label={s}
             active={cycle.selectedSymptoms.includes(s)}
             onToggle={() => toggleSymptom(s)}
+            variant={cycleVariant}
           />
         ))}
       </div>

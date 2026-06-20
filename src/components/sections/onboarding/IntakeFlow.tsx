@@ -19,6 +19,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { BtnRose } from "@/components/ui/Button";
 import { DrumPicker } from "@/components/ui/DrumPicker";
 import { InfoPill } from "@/components/ui/InfoPill";
+import { AppIcon } from "@/components/ui/icons";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { Tag } from "@/components/ui/Tag";
@@ -140,7 +141,7 @@ export function IntakeFlow({
   if (!step) return null;
 
   return (
-    <AppShell hasNav={false} className="bg-bg">
+    <AppShell hasNav={false} pullToRefresh={false} className="bg-bg">
       <div className="mb-6 flex items-center gap-3">
         {(stepIndex > 0 || onBackFromFirst) && <BackButton onClick={handleBack} />}
         <ProgressBar progress={progress} className="flex-1" />
@@ -156,7 +157,7 @@ export function IntakeFlow({
 
       {step.infoPill && (
         <div className="mb-4">
-          <InfoPill icon="ℹ">{step.infoPill}</InfoPill>
+          <InfoPill icon={<AppIcon name="info" className="h-4 w-4" />}>{step.infoPill}</InfoPill>
         </div>
       )}
 

@@ -4,8 +4,9 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAppState } from "@/context/AppStateContext";
 import type { AppSyncPayload } from "@/lib/sync-types";
-import { saveJSON, loadJSON } from "@/lib/storage";
 import { SYNC_STORAGE_KEY } from "@/lib/sync-types";
+import { saveJSON } from "@/lib/storage";
+import { pullCloudSyncIfNewer } from "@/lib/sync-pull";
 
 const DEBOUNCE_MS = 2000;
 
@@ -17,6 +18,7 @@ export function useCloudSync() {
     cycle,
     assessmentResult,
     lastSymptomSaveDate,
+    insights,
   } = useAppState();
 
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -29,22 +31,9 @@ export function useCloudSync() {
     pulledForUser.current = user.id;
 
     fetch("/api/sync")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (!json?.data) return;
-        const remote = json.data as AppSyncPayload;
-        const localUpdated = loadJSON<string | null>(SYNC_STORAGE_KEY, null);
-
-        if (!localUpdated || remote.updatedAt > localUpdated) {
-          saveJSON("profile", remote.profile);
-          saveJSON("cycle", remote.cycle);
-          saveJSON("assessment-result", remote.assessmentResult);
-          if (remote.lastSymptomSaveDate) {
-            saveJSON("last-symptom-save", remote.lastSymptomSaveDate);
-          }
-          saveJSON(SYNC_STORAGE_KEY, remote.updatedAt);
-          window.location.reload();
-        }
+      .then(() => pullCloudSyncIfNewer())
+      .then((updated) => {
+        if (updated) window.location.reload();
       })
       .catch(() => {});
   }, [hydrated, isAuthenticated, user]);
@@ -61,6 +50,7 @@ export function useCloudSync() {
         cycle,
         assessmentResult,
         lastSymptomSaveDate,
+        insights,
         updatedAt: new Date().toISOString(),
       };
 
@@ -89,5 +79,6 @@ export function useCloudSync() {
     cycle,
     assessmentResult,
     lastSymptomSaveDate,
+    insights,
   ]);
 }

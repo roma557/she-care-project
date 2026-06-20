@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { AppShell, AppHeader } from "@/components/layout/AppShell";
+import { ScreenBackHeader } from "@/components/ui/ScreenBackHeader";
+import { AppIcon, IconName } from "@/components/ui/icons";
 
-const affirmations = [
-  { icon: "🌸", text: "You're doing your best — and your body notices." },
-  { icon: "💪", text: "PCOS doesn't define you. Your strength does." },
-  { icon: "🌿", text: "Small, consistent steps create lasting change." },
-  { icon: "✨", text: "Your worth isn't measured by a number on a scale." },
-  { icon: "🌙", text: "Rest is not laziness — it's part of healing." },
-  { icon: "💜", text: "You deserve compassionate care, including from yourself." },
-  { icon: "🌻", text: "Every cycle is different, and that's okay." },
-  { icon: "🕊️", text: "Asking for help is a sign of courage, not weakness." },
+const affirmations: { icon: IconName; text: string }[] = [
+  { icon: "flower", text: "You're doing your best — and your body notices." },
+  { icon: "dumbbell", text: "PCOS doesn't define you. Your strength does." },
+  { icon: "leaf", text: "Small, consistent steps create lasting change." },
+  { icon: "sparkle", text: "Your worth isn't measured by a number on a scale." },
+  { icon: "moon", text: "Rest is not laziness — it's part of healing." },
+  { icon: "heart", text: "You deserve compassionate care, including from yourself." },
+  { icon: "sun", text: "Every cycle is different, and that's okay." },
+  { icon: "wind", text: "Asking for help is a sign of courage, not weakness." },
 ];
 
 const copingTools = [
@@ -25,8 +27,6 @@ const helplines = [
   { name: "iCall", number: "9152987821", hours: "Mon–Sat, 8am–10pm" },
   { name: "Vandrevala Foundation", number: "1860-2662-345", hours: "24/7" },
 ];
-
-import { ScreenBackHeader } from "@/components/ui/ScreenBackHeader";
 
 interface WellnessScreenProps {
   onBack?: () => void;
@@ -52,7 +52,7 @@ export function WellnessScreen({ onBack }: WellnessScreenProps) {
       )}
 
       <div className="mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-teal-mid/20 to-purple-mid/30 p-5 shadow-card">
-        <span className="text-3xl">{current.icon}</span>
+        <AppIcon name={current.icon} className="h-8 w-8 text-rose-deep" />
         <p className="mt-3 font-serif text-lg leading-snug text-purple-dark">
           {current.text}
         </p>

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-server";
 import {
-  findUserById,
-  setUserNotifications,
-  updateUser,
-} from "@/lib/users-db";
+  findUserByIdAsync,
+  setUserNotificationsAsync,
+  updateUserAsync,
+} from "@/lib/db";
 import {
   generateSmartNotifications,
   AppNotification,
@@ -49,7 +49,7 @@ async function syncForUser(
   context: NotificationSyncContext,
   prefs: NotificationPreferences,
 ): Promise<AppNotification[]> {
-  const record = findUserById(userId);
+  const record = await findUserByIdAsync(userId);
   if (!record) return [];
 
   const existingIds = new Set(record.notifications.map((n) => n.id));
@@ -58,7 +58,7 @@ async function syncForUser(
   if (newOnes.length === 0) return record.notifications;
 
   const notifications = [...newOnes, ...record.notifications].slice(0, 50);
-  setUserNotifications(userId, notifications);
+  await setUserNotificationsAsync(userId, notifications);
   return notifications;
 }
 
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     user.subscription.expiresAt,
   );
 
-  const record = findUserById(user.id);
+  const record = await findUserByIdAsync(user.id);
   if (!record) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing context" }, { status: 400 });
   }
 
-  const record = findUserById(user.id);
+  const record = await findUserByIdAsync(user.id);
   if (!record) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -125,7 +125,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const record = findUserById(user.id);
+  const record = await findUserByIdAsync(user.id);
   if (!record) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -147,13 +147,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (body.prefs) {
-    updateUser(user.id, {
+    await updateUserAsync(user.id, {
       notificationPrefs: mergePrefs({ ...user.notificationPrefs, ...body.prefs }),
     });
   }
 
-  const updated = setUserNotifications(user.id, notifications);
-  const freshUser = findUserById(user.id);
+  const updated = await setUserNotificationsAsync(user.id, notifications);
+  const freshUser = await findUserByIdAsync(user.id);
   const { notifications: _, ...safeUser } = freshUser!;
 
   return NextResponse.json({ notifications: updated, user: safeUser });

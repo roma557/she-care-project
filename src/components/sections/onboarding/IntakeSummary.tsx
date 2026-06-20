@@ -24,7 +24,7 @@ export function IntakeSummary({
   const displayName = answers.name.trim() || "Friend";
 
   return (
-    <AppShell hasNav={false} className="bg-gradient-to-b from-purple-light/30 to-cream">
+    <AppShell hasNav={false} pullToRefresh={false} className="bg-gradient-to-b from-purple-light/30 to-cream">
       {onBack && (
         <button type="button" onClick={onBack} className="mb-3 text-xs text-gray-500">
           ← Back

@@ -19,8 +19,11 @@ export async function verifyMsg91AccessToken(accessToken: string): Promise<{
   try {
     const res = await fetch("https://control.msg91.com/api/v5/widget/verifyAccessToken", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
         authkey,
         "access-token": accessToken,
       }),

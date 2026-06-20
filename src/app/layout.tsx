@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PerfInit } from "@/components/app/PerfInit";
 import { ServiceWorkerRegister } from "@/components/app/ServiceWorkerRegister";
 import "./globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <PerfInit />
         <ServiceWorkerRegister />
         {children}
       </body>

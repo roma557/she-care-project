@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ScreenBackHeader } from "@/components/ui/ScreenBackHeader";
+import { AppIcon, IconName } from "@/components/ui/icons";
+import { usePermissions } from "@/hooks/usePermissions";
+import { UpgradePrompt } from "@/components/ui/UpgradePrompt";
 
 const tabs = [
   { id: "diet", label: "Diet" },
@@ -56,15 +59,17 @@ function TabContent({ tab }: { tab: TabId }) {
     case "exercise":
       return (
         <ul className="space-y-3">
-          {[
-            { icon: "🚶", title: "Daily walking", desc: "20 min after meals — improves insulin sensitivity" },
-            { icon: "🏋️", title: "Strength training", desc: "2–3× weekly — builds muscle, boosts metabolism" },
-            { icon: "🧘", title: "Yoga", desc: "Butterfly pose, cat-cow, child's pose for pelvic health" },
-            { icon: "🏃", title: "Moderate cardio", desc: "30 min, 3× weekly — swimming or brisk walking" },
-            { icon: "⚠️", title: "Avoid over-exercise", desc: "Excessive cardio can raise cortisol and worsen symptoms" },
-          ].map((item) => (
+          {(
+            [
+              { icon: "walk" as const, title: "Daily walking", desc: "20 min after meals — improves insulin sensitivity" },
+              { icon: "dumbbell" as const, title: "Strength training", desc: "2–3× weekly — builds muscle, boosts metabolism" },
+              { icon: "wind" as const, title: "Yoga", desc: "Butterfly pose, cat-cow, child's pose for pelvic health" },
+              { icon: "walk" as const, title: "Moderate cardio", desc: "30 min, 3× weekly — swimming or brisk walking" },
+              { icon: "warning" as const, title: "Avoid over-exercise", desc: "Excessive cardio can raise cortisol and worsen symptoms" },
+            ] as { icon: IconName; title: string; desc: string }[]
+          ).map((item) => (
             <li key={item.title} className="flex gap-3 rounded-2xl bg-white p-3.5 shadow-card">
-              <span className="text-lg">{item.icon}</span>
+              <AppIcon name={item.icon} className="mt-0.5 h-5 w-5 shrink-0 text-rose-deep" />
               <div>
                 <p className="text-sm font-medium text-purple-dark">{item.title}</p>
                 <p className="mt-0.5 text-[10px] text-gray-500">{item.desc}</p>
@@ -76,15 +81,17 @@ function TabContent({ tab }: { tab: TabId }) {
     case "sleep":
       return (
         <ul className="space-y-3">
-          {[
-            { icon: "🌙", title: "7–9 hours nightly", desc: "Consistent sleep supports hormone balance" },
-            { icon: "⏰", title: "Fixed schedule", desc: "Same bedtime ±30 min, even on weekends" },
-            { icon: "📵", title: "Screen-free 30 min before bed", desc: "Blue light disrupts melatonin production" },
-            { icon: "🌡️", title: "Cool, dark room", desc: "18–22°C ideal — use blackout curtains" },
-            { icon: "☕", title: "No caffeine after 2pm", desc: "Includes chai — switch to herbal tea" },
-          ].map((item) => (
+          {(
+            [
+              { icon: "moon" as const, title: "7–9 hours nightly", desc: "Consistent sleep supports hormone balance" },
+              { icon: "clock" as const, title: "Fixed schedule", desc: "Same bedtime ±30 min, even on weekends" },
+              { icon: "phone-off" as const, title: "Screen-free 30 min before bed", desc: "Blue light disrupts melatonin production" },
+              { icon: "thermometer" as const, title: "Cool, dark room", desc: "18–22°C ideal — use blackout curtains" },
+              { icon: "coffee" as const, title: "No caffeine after 2pm", desc: "Includes chai — switch to herbal tea" },
+            ] as { icon: IconName; title: string; desc: string }[]
+          ).map((item) => (
             <li key={item.title} className="flex gap-3 rounded-2xl bg-white p-3.5 shadow-card">
-              <span className="text-lg">{item.icon}</span>
+              <AppIcon name={item.icon} className="mt-0.5 h-5 w-5 shrink-0 text-rose-deep" />
               <div>
                 <p className="text-sm font-medium text-purple-dark">{item.title}</p>
                 <p className="mt-0.5 text-[10px] text-gray-500">{item.desc}</p>
@@ -165,6 +172,7 @@ function TabContent({ tab }: { tab: TabId }) {
 
 export function CarePlanScreen({ onBack }: CarePlanScreenProps) {
   const [activeTab, setActiveTab] = useState<TabId>("diet");
+  const { can, startCheckout } = usePermissions();
 
   return (
     <AppShell hasNav={false} className="bg-gradient-to-b from-teal-light/40 to-cream">
@@ -173,6 +181,28 @@ export function CarePlanScreen({ onBack }: CarePlanScreenProps) {
         subtitle="Daily guidance for diet, movement & more"
         onBack={onBack}
       />
+
+      {!can("personalized_plans") && activeTab === "medical" && (
+        <div className="mb-4">
+          <UpgradePrompt
+            feature="Personalized wellness plans & medical monitoring"
+            requiredTier="premium"
+            onUpgrade={(t) => startCheckout(t)}
+            compact
+          />
+        </div>
+      )}
+
+      {!can("pcos_basic") && (activeTab === "supplements" || activeTab === "herbs") && (
+        <div className="mb-4">
+          <UpgradePrompt
+            feature="Advanced PCOS care guidance"
+            requiredTier="plus"
+            onUpgrade={(t) => startCheckout(t)}
+            compact
+          />
+        </div>
+      )}
 
       <div className="hide-scrollbar mb-4 flex gap-1.5 overflow-x-auto pb-1">
         {tabs.map((tab) => (

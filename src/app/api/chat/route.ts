@@ -6,6 +6,8 @@ import {
   matchTopicHint,
   type KnowledgeMatch,
 } from "@/lib/knowledge";
+import { getSessionUser } from "@/lib/auth-server";
+import { resolveEffectiveTier, consumeUsage, UsageLimitError } from "@/lib/permissions";
 
 const SYSTEM_PROMPT = `You are a warm, knowledgeable, and empathetic women's health companion for women in India, with deep focus on PCOS, PCOD, endometriosis, menstrual disorders, vaginal infections, pelvic pain, and hormonal conditions. Always respond with: clear, compassionate, non-judgmental language | practical, actionable advice for India | evidence-based information | emotional validation | a reminder to consult a gynecologist | 200–400 words | empowering language | cultural sensitivity (Indian foods, herbs, accessibility). Never provide a specific diagnosis or prescribe medications. At the end, briefly suggest the user can explore trusted health sources online for more reading.`;
 
@@ -20,6 +22,8 @@ interface ChatResponseBody {
   exploreUrl: string;
   exploreLabel: string;
   matchMethod?: string;
+  remaining?: number;
+  unlimited?: boolean;
 }
 
 function buildResponse(
@@ -27,6 +31,7 @@ function buildResponse(
   question: string,
   fallback: boolean,
   match?: KnowledgeMatch | null,
+  usage?: { remaining: number; unlimited: boolean },
 ): ChatResponseBody {
   const topicHint = match?.conditionName ?? matchTopicHint(question) ?? undefined;
   return {
@@ -35,6 +40,8 @@ function buildResponse(
     exploreUrl: buildExploreUrl(question, topicHint),
     exploreLabel: EXPLORE_LABEL,
     matchMethod: match?.method,
+    remaining: usage?.remaining,
+    unlimited: usage?.unlimited,
   };
 }
 
@@ -80,6 +87,33 @@ function fallbackReply(question: string): { content: string; match: KnowledgeMat
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: "sign_in_required", message: "Sign in to use AI Coach" },
+        { status: 401 },
+      );
+    }
+
+    const tier = await resolveEffectiveTier(user.id);
+    let usageInfo: { remaining: number; unlimited: boolean };
+    try {
+      const usage = await consumeUsage(user.id, tier, "ai_coach");
+      usageInfo = { remaining: usage.remaining, unlimited: usage.unlimited };
+    } catch (err) {
+      if (err instanceof UsageLimitError) {
+        return NextResponse.json(
+          {
+            error: "limit_reached",
+            requiredTier: err.requiredTier,
+            message: "You've used all AI Coach messages this month. Upgrade for more.",
+          },
+          { status: 429 },
+        );
+      }
+      throw err;
+    }
+
     const { messages } = (await req.json()) as { messages: Message[] };
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const question = lastUser?.content ?? "";
@@ -87,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) {
       const { content, match } = fallbackReply(question);
-      return NextResponse.json(buildResponse(content, question, true, match));
+      return NextResponse.json(buildResponse(content, question, true, match, usageInfo));
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -107,14 +141,14 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const { content, match } = fallbackReply(question);
-      return NextResponse.json(buildResponse(content, question, true, match));
+      return NextResponse.json(buildResponse(content, question, true, match, usageInfo));
     }
 
     const data = await response.json();
     const content =
       data.content?.[0]?.text ?? "I'm sorry, I couldn't generate a response. Please try again.";
     const match = findConditionAnswerHybrid(question);
-    return NextResponse.json(buildResponse(content, question, false, match));
+    return NextResponse.json(buildResponse(content, question, false, match, usageInfo));
   } catch {
     return NextResponse.json(
       buildResponse(
@@ -125,4 +159,20 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ authenticated: false });
+  }
+  const tier = await resolveEffectiveTier(user.id);
+  const { getUsageStatus } = await import("@/lib/permissions/usage");
+  const usage = await getUsageStatus(user.id, tier, "ai_coach");
+  return NextResponse.json({
+    authenticated: true,
+    tier,
+    remaining: usage.remaining,
+    unlimited: usage.unlimited,
+  });
 }

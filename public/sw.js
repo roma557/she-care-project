@@ -33,11 +33,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Never intercept Next.js dev/build assets — they break HMR and Turbopack.
+  if (url.pathname.startsWith("/_next/")) return;
+
   if (
     url.origin === self.location.origin &&
-    (url.pathname === "/" ||
-      url.pathname.startsWith("/_next/static/") ||
-      OFFLINE_URLS.includes(url.pathname))
+    (url.pathname === "/" || OFFLINE_URLS.includes(url.pathname))
   ) {
     event.respondWith(
       caches.match(request).then((cached) => {

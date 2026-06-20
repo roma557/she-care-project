@@ -1,8 +1,19 @@
 import type { DayMark } from "@/lib/cycle";
 import { addDays, parseDateKey, startOfDay, toDateKey } from "@/lib/datetime";
 import type { CalendarCell } from "@/components/ui/CalendarGrid";
+import type { SubscriptionTier } from "@/lib/subscription";
 
 export type CycleRegularity = "regular" | "irregular" | "absent" | "unknown";
+
+export interface PeriodRecord {
+  startDate: string;
+  endDate: string;
+  periodLengthDays: number;
+  /** Days from the previous period start to this one */
+  cycleLength?: number;
+  /** True when today falls within this period streak */
+  isActive?: boolean;
+}
 
 export interface CycleProjection {
   loggedPeriodKeys: Set<string>;
@@ -19,6 +30,107 @@ function daysBetween(startKey: string, endKey: string): number {
   const start = startOfDay(parseDateKey(startKey));
   const end = startOfDay(parseDateKey(endKey));
   return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
+/** Build structured period records (newest first) from calendar marks. */
+export function extractPeriodRecords(
+  markedDays: Record<string, DayMark>,
+  todayKey?: string,
+): PeriodRecord[] {
+  const periodKeys = Object.entries(markedDays)
+    .filter(([, mark]) => mark === "period")
+    .map(([key]) => key)
+    .sort();
+
+  const chronological: PeriodRecord[] = [];
+  let i = 0;
+  while (i < periodKeys.length) {
+    const startDate = periodKeys[i];
+    let endDate = startDate;
+    while (i + 1 < periodKeys.length) {
+      const next = periodKeys[i + 1];
+      const expected = toDateKey(addDays(parseDateKey(endDate), 1));
+      if (next !== expected) break;
+      endDate = next;
+      i++;
+    }
+    chronological.push({
+      startDate,
+      endDate,
+      periodLengthDays: daysBetween(startDate, endDate) + 1,
+    });
+    i++;
+  }
+
+  for (let j = 1; j < chronological.length; j++) {
+    chronological[j].cycleLength = daysBetween(
+      chronological[j - 1].startDate,
+      chronological[j].startDate,
+    );
+  }
+
+  if (todayKey && chronological.length) {
+    const latest = chronological[chronological.length - 1];
+    if (todayKey >= latest.startDate && todayKey <= latest.endDate) {
+      latest.isActive = true;
+    }
+  }
+
+  return chronological.reverse();
+}
+
+export function isPeriodActive(
+  markedDays: Record<string, DayMark>,
+  todayKey: string,
+): boolean {
+  const records = extractPeriodRecords(markedDays, todayKey);
+  return records.some((r) => r.isActive);
+}
+
+/** Mark today (or dateKey) as period day 1 of a new or continuing streak. */
+export function applyPeriodStart(
+  markedDays: Record<string, DayMark>,
+  dateKey: string,
+): Record<string, DayMark> {
+  return { ...markedDays, [dateKey]: "period" };
+}
+
+/** Close the current or most recent period streak at dateKey. */
+export function applyPeriodEnd(
+  markedDays: Record<string, DayMark>,
+  dateKey: string,
+): Record<string, DayMark> {
+  const chronological = [...extractPeriodRecords(markedDays)].reverse();
+  if (!chronological.length) return markedDays;
+
+  let target =
+    chronological.find((r) => dateKey >= r.startDate && dateKey <= r.endDate) ??
+    chronological[chronological.length - 1];
+
+  const next = { ...markedDays };
+  let cursor = parseDateKey(target.startDate);
+  const end = parseDateKey(dateKey);
+
+  while (cursor <= end) {
+    next[toDateKey(cursor)] = "period";
+    cursor = addDays(cursor, 1);
+  }
+
+  cursor = addDays(end, 1);
+  while (next[toDateKey(cursor)] === "period") {
+    delete next[toDateKey(cursor)];
+    cursor = addDays(cursor, 1);
+  }
+
+  return next;
+}
+
+export function syncCycleStartDate(
+  markedDays: Record<string, DayMark>,
+  fallback: string,
+): string {
+  const starts = extractPeriodStarts(markedDays);
+  return starts[starts.length - 1] ?? fallback;
 }
 
 /** First day of each consecutive period streak in marked days. */
@@ -51,8 +163,9 @@ export function buildCycleProjection(input: {
   cycleLength: number;
   cycleRegularity: CycleRegularity;
   fertilityGoal?: boolean;
+  predictionTier?: SubscriptionTier;
 }): CycleProjection {
-  const { markedDays, cycleLength, cycleRegularity, fertilityGoal } = input;
+  const { markedDays, cycleLength, cycleRegularity, fertilityGoal, predictionTier = "free" } = input;
 
   const loggedPeriodKeys = new Set(
     Object.entries(markedDays)
@@ -68,7 +181,9 @@ export function buildCycleProjection(input: {
   const periodStarts = extractPeriodStarts(markedDays);
   const avgCycleLength = averageCycleLength(periodStarts, cycleLength);
   const showPredictions =
-    cycleRegularity === "regular" && periodStarts.length >= 1;
+    predictionTier !== "free" &&
+    cycleRegularity === "regular" &&
+    periodStarts.length >= 1;
 
   const predictedPeriodKeys = new Set<string>();
   const fertileDateKeys = new Set<string>();
@@ -82,13 +197,18 @@ export function buildCycleProjection(input: {
       predictedPeriodKeys.add(toDateKey(addDays(parseDateKey(nextPeriodEstimate), i)));
     }
 
-    if (fertilityGoal) {
+    const canFertilityBasic = predictionTier === "starter" || predictionTier === "plus" || predictionTier === "premium";
+    const canFertilityAdvanced = predictionTier === "plus" || predictionTier === "premium";
+
+    if (fertilityGoal && canFertilityBasic) {
       const ovulDay = Math.round(avgCycleLength * 0.5);
       const ovulKey = toDateKey(addDays(parseDateKey(lastStart), ovulDay));
-      for (let offset = -2; offset <= 2; offset++) {
-        if (offset !== 0) {
+      if (canFertilityAdvanced) {
+        for (let offset = -2; offset <= 2; offset++) {
           fertileDateKeys.add(toDateKey(addDays(parseDateKey(ovulKey), offset)));
         }
+      } else {
+        fertileDateKeys.add(ovulKey);
       }
     }
   }
@@ -142,4 +262,12 @@ export function buildMonthCalendarCells(
 export function normalizeCycleRegularity(value?: string): CycleRegularity {
   if (value === "regular" || value === "irregular" || value === "absent") return value;
   return "unknown";
+}
+
+export function formatPeriodDate(dateKey: string): string {
+  return parseDateKey(dateKey).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }

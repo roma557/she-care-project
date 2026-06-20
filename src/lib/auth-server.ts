@@ -1,7 +1,22 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { AuthUser, SESSION_COOKIE, SESSION_MAX_AGE, SessionPayload } from "@/lib/auth-types";
-import { findUserById } from "@/lib/users-db";
+import {
+  AuthUser,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  SessionPayload,
+  createDefaultUser,
+  getNextMonthReset,
+} from "@/lib/auth-types";
+import {
+  findUserByIdAsync,
+  findUserByPhoneAsync,
+  hydrateUserSubscription,
+  upsertUserAsync,
+  userHasPasswordAsync,
+} from "@/lib/db";
+import type { UserRecord } from "@/lib/db/types";
+import { getEffectiveTier } from "@/lib/subscription";
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET ?? "dev-secret-change-in-production-her-wellness";
@@ -42,14 +57,63 @@ export async function clearSessionCookie(): Promise<void> {
   jar.delete(SESSION_COOKIE);
 }
 
+function stripUserRecord(record: UserRecord): AuthUser {
+  const { notifications: _, passwordHash: __, appData: ___, ...user } = record;
+  return user;
+}
+
+export async function buildAuthUserResponse(record: UserRecord): Promise<AuthUser> {
+  const hydrated = await hydrateUserSubscription(record);
+  const hasPassword = await userHasPasswordAsync(hydrated.id);
+  const isPaid = getEffectiveTier(hydrated.subscription) !== "free";
+  const user = stripUserRecord(hydrated);
+  return {
+    ...user,
+    hasPassword,
+    needsPasswordSetup: isPaid && !hasPassword,
+  };
+}
+
+export async function finalizeLogin(
+  phone: string,
+  name: string,
+  fallbackName?: string,
+): Promise<AuthUser> {
+  let user = await findUserByPhoneAsync(phone);
+  if (!user) {
+    const displayName = name || fallbackName || "Friend";
+    user = await upsertUserAsync(createDefaultUser(phone, displayName));
+  } else if (name && name !== user.name) {
+    user = await upsertUserAsync({ ...stripUserRecord(user), name });
+  }
+
+  if (new Date(user.aiQuestionsResetAt) <= new Date()) {
+    user = await upsertUserAsync({
+      ...stripUserRecord(user),
+      aiQuestionsUsed: 0,
+      aiQuestionsResetAt: getNextMonthReset(),
+    });
+  }
+
+  const token = await createSessionToken({ userId: user.id, phone: user.phone });
+  await setSessionCookie(token);
+
+  return buildAuthUserResponse(user);
+}
+
 export async function getSessionUser(): Promise<AuthUser | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const payload = await verifySessionToken(token);
   if (!payload) return null;
-  const record = findUserById(payload.userId);
+  const record = await findUserByIdAsync(payload.userId);
   if (!record) return null;
-  const { notifications: _, ...user } = record;
+  return buildAuthUserResponse(record);
+}
+
+export async function requireSessionUser(): Promise<AuthUser> {
+  const user = await getSessionUser();
+  if (!user) throw new Error("Unauthorized");
   return user;
 }
