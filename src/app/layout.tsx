@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { ServiceWorkerRegister } from "@/components/app/ServiceWorkerRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shecare.ractrotech.com"),
   title: "She Care — PCOS & PCOD Companion",
   description:
     "Your calm companion for PCOS & PCOD — cycle tracking, insights, and gentle care",
@@ -32,7 +34,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }

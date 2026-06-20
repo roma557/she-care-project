@@ -28,7 +28,7 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { currentCycleDay, profile, toggleSymptom, cycle, assessmentResult } = useAppState();
   const phase = getCyclePhase(currentCycleDay);
-  const displayName = profile.name || "Priya";
+  const displayName = profile.name || "there";
   const cycleLength = profile.cycleLength || 28;
 
   return (

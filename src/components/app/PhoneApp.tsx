@@ -20,6 +20,7 @@ import { AppScreen, NavTab, OVERLAY_SCREENS } from "@/lib/phone";
 import { buildNotificationContext } from "@/lib/notifications";
 import { getEffectiveTier } from "@/lib/subscription";
 import { useAwarenessPush } from "@/hooks/useAwarenessPush";
+import { useCloudSync } from "@/hooks/useCloudSync";
 
 interface ScreenContentProps {
   screen: AppScreen;
@@ -81,6 +82,8 @@ function PhoneAppInner() {
     enabled: notificationPrefs.browserPush,
     notifications,
   });
+
+  useCloudSync();
 
   useEffect(() => {
     if (!hydrated || !profile.onboardingComplete) return;

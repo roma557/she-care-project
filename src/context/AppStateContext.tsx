@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from "react";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import { CycleState, CycleMode, DEFAULT_CYCLE, migrateCycleState } from "@/lib/cycle";
+import { extractPeriodStarts } from "@/lib/cycle-prediction";
 import { cycleStartFromDay, getCurrentCycleDay } from "@/lib/datetime";
 import { AssessmentResult } from "@/lib/assessment";
 import { UserProfile, DEFAULT_PROFILE } from "@/lib/profile";
@@ -112,10 +113,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const toggleDay = useCallback((dateKey: string) => {
     setCycle((prev) => {
       const next = { ...prev.markedDays };
-      const mode = prev.cycleMode;
+      const mode = "period";
       if (next[dateKey] === mode) delete next[dateKey];
       else next[dateKey] = mode;
-      return { ...prev, markedDays: next };
+
+      const periodStarts = extractPeriodStarts(next);
+      const latestStart = periodStarts[periodStarts.length - 1];
+
+      return {
+        ...prev,
+        markedDays: next,
+        cycleMode: mode,
+        cycleStartDate: latestStart ?? prev.cycleStartDate,
+      };
     });
   }, []);
 

@@ -2,9 +2,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { AuthUser } from "@/lib/auth-types";
 import { AppNotification } from "@/lib/notifications";
+import type { AppSyncPayload } from "@/lib/sync-types";
 
 interface UserRecord extends AuthUser {
   notifications: AppNotification[];
+  appData?: AppSyncPayload | null;
 }
 
 interface Database {
@@ -91,4 +93,14 @@ export function getUserNotifications(userId: string): AppNotification[] {
 export function setUserNotifications(userId: string, notifications: AppNotification[]): AppNotification[] {
   const updated = updateUser(userId, { notifications });
   return updated?.notifications ?? [];
+}
+
+export function getUserAppData(userId: string): AppSyncPayload | null {
+  const user = findUserById(userId);
+  return user?.appData ?? null;
+}
+
+export function setUserAppData(userId: string, data: AppSyncPayload): AppSyncPayload {
+  updateUser(userId, { appData: data });
+  return data;
 }

@@ -2,32 +2,28 @@
 
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { CalendarGrid, buildCalendarCells } from "@/components/ui/CalendarGrid";
+import { CalendarGrid } from "@/components/ui/CalendarGrid";
 import { PhaseBar } from "@/components/ui/PhaseBar";
 import { SymptomChip } from "@/components/ui/SymptomChip";
 import { BtnRose } from "@/components/ui/Button";
 import { useAppState } from "@/context/AppStateContext";
 import { ALL_SYMPTOMS } from "@/lib/cycle";
-import { formatTodayLong } from "@/lib/datetime";
+import { dateKeyForDayOfMonth, formatTodayLong } from "@/lib/datetime";
+import {
+  buildCycleProjection,
+  buildMonthCalendarCells,
+  normalizeCycleRegularity,
+} from "@/lib/cycle-prediction";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
-function getSampleCycleDays(cycleLength: number) {
-  const periodDays = Array.from({ length: 5 }, (_, i) => i + 1);
-  const ovulDay = Math.round(cycleLength * 0.5);
-  const fertileDays = [ovulDay - 2, ovulDay - 1, ovulDay + 1, ovulDay + 2].filter(
-    (d) => d > 0 && d <= 31,
-  );
-  const predictedDays = Array.from({ length: 3 }, (_, i) => periodDays.length + i + 1);
-  return { periodDays, ovulDay, fertileDays, predictedDays };
-}
-
 export function CycleScreen() {
   const {
     profile,
+    toggleDay,
     toggleSymptom,
     saveSymptoms,
     symptomSaved,
@@ -40,16 +36,24 @@ export function CycleScreen() {
   const [flowLevel, setFlowLevel] = useState(2);
 
   const cycleLength = profile.cycleLength || 28;
-  const { periodDays, ovulDay, fertileDays, predictedDays } = getSampleCycleDays(cycleLength);
+  const regularity = normalizeCycleRegularity(profile.intakeAnswers?.cycleRegularity);
+  const fertilityGoal = profile.intakeAnswers?.primaryGoal === "fertility";
 
-  const cells = buildCalendarCells(
+  const projection = buildCycleProjection({
+    markedDays: cycle.markedDays,
+    cycleLength,
+    cycleRegularity: regularity,
+    fertilityGoal,
+  });
+
+  const isCurrentMonth =
+    viewMonth === now.getMonth() && viewYear === now.getFullYear();
+
+  const cells = buildMonthCalendarCells(
     viewYear,
     viewMonth,
-    periodDays,
-    ovulDay,
-    fertileDays,
-    predictedDays,
-    now.getMonth() === viewMonth && now.getFullYear() === viewYear ? now.getDate() : -1,
+    projection,
+    isCurrentMonth ? now.getDate() : -1,
   );
 
   function prevMonth() {
@@ -70,13 +74,32 @@ export function CycleScreen() {
     }
   }
 
+  function handleDayClick(day: number) {
+    const dateKey = dateKeyForDayOfMonth(day, new Date(viewYear, viewMonth, 1));
+    toggleDay(dateKey);
+  }
+
   return (
     <AppShell className="bg-bg">
       <div className="mb-1">
         <h1 className="font-serif text-[1.75rem] italic text-ink">Cycle Tracker</h1>
         <p className="mt-1 text-sm font-light text-ink-mid">
-          Cycle 3 of {viewYear} · {cycleLength} day average
+          Cycle {projection.loggedCycleCount} of {viewYear} · {projection.avgCycleLength} day average
         </p>
+        {!projection.showPredictions && regularity !== "unknown" && (
+          <p className="mt-1 text-[10px] text-ink-faint">
+            Predictions hidden — tracking mode for {regularity} cycles
+          </p>
+        )}
+        {projection.showPredictions && projection.nextPeriodEstimate && (
+          <p className="mt-1 text-[10px] text-ink-faint">
+            Next period estimated around{" "}
+            {new Date(projection.nextPeriodEstimate + "T00:00:00").toLocaleDateString(undefined, {
+              day: "numeric",
+              month: "short",
+            })}
+          </p>
+        )}
       </div>
 
       <div className="mb-5 mt-4 flex items-center justify-between">
@@ -109,9 +132,27 @@ export function CycleScreen() {
         ))}
       </div>
 
-      <CalendarGrid cells={cells} />
+      <CalendarGrid cells={cells} onDayClick={handleDayClick} />
 
-      <div className="mb-6 mt-6">
+      <div className="mt-3 flex flex-wrap gap-3 text-[9px] text-ink-faint">
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-rose-deep" /> Logged period
+        </span>
+        {projection.showPredictions && (
+          <span className="flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-rose-deep/20" /> Estimated
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full border border-rose-deep" /> Today
+        </span>
+      </div>
+
+      <p className="mb-4 mt-2 text-[10px] text-ink-faint">
+        Tap a day to log or remove period marks
+      </p>
+
+      <div className="mb-6">
         <PhaseBar />
       </div>
 

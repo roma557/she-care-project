@@ -53,8 +53,8 @@ function OptionButton({
       onClick={onClick}
       className={`w-full rounded-2xl px-4 py-3 text-left text-xs transition-colors ${
         selected
-          ? "bg-purple-dark text-white shadow-card"
-          : "border border-gray-200 bg-white text-gray-700"
+          ? "bg-rose-deep text-white shadow-card"
+          : "border border-rose-pale bg-surface text-ink-mid"
       }`}
     >
       {label}
