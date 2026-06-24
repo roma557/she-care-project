@@ -1,3 +1,4 @@
+import { chatCompletion } from "@/lib/ai/client";
 import type { AppSyncPayload } from "@/lib/sync-types";
 
 export interface AiInsightResult {
@@ -62,35 +63,22 @@ export function generateRuleBasedInsights(data: AppSyncPayload, tier: "starter" 
 }
 
 export async function generateAiInsights(data: AppSyncPayload, tier: "starter" | "plus" | "premium"): Promise<AiInsightResult[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return generateRuleBasedInsights(data, tier);
-
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 600,
-        messages: [
-          {
-            role: "user",
-            content: `Analyze this women's health tracking data and return 2-3 brief insights as JSON array with title, body, category fields. Tier: ${tier}. Data: ${JSON.stringify({
-              cycleLength: data.profile.cycleLength,
-              markedDaysCount: Object.keys(data.cycle.markedDays ?? {}).length,
-              assessmentScore: data.assessmentResult?.score,
-            })}. No diagnosis. Indian context.`,
-          },
-        ],
-      }),
+    const text = await chatCompletion({
+      maxTokens: 600,
+      tier,
+      messages: [
+        {
+          role: "user",
+          content: `Analyze this women's health tracking data and return 2-3 brief insights as JSON array with title, body, category fields. Tier: ${tier}. Data: ${JSON.stringify({
+            cycleLength: data.profile.cycleLength,
+            markedDaysCount: Object.keys(data.cycle.markedDays ?? {}).length,
+            assessmentScore: data.assessmentResult?.score,
+          })}. No diagnosis. Indian context.`,
+        },
+      ],
     });
-    if (!res.ok) return generateRuleBasedInsights(data, tier);
-    const json = await res.json();
-    const text = json.content?.[0]?.text ?? "";
+    if (!text) return generateRuleBasedInsights(data, tier);
     const match = text.match(/\[[\s\S]*\]/);
     if (match) return JSON.parse(match[0]) as AiInsightResult[];
   } catch {

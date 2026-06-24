@@ -17,6 +17,13 @@ import {
 } from "@/lib/db";
 import type { UserRecord } from "@/lib/db/types";
 import { getEffectiveTier } from "@/lib/subscription";
+import { activateDemoSubscription } from "@/lib/billing/sync";
+import {
+  getLockedTestPlanTier,
+  getTestAccountTier,
+  googlePhoneForEmail,
+  normalizeTestEmail,
+} from "@/lib/test-accounts";
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET ?? "dev-secret-change-in-production-her-wellness";
@@ -67,10 +74,14 @@ export async function buildAuthUserResponse(record: UserRecord): Promise<AuthUse
   const hasPassword = await userHasPasswordAsync(hydrated.id);
   const isPaid = getEffectiveTier(hydrated.subscription) !== "free";
   const user = stripUserRecord(hydrated);
+  const lockedTier = getLockedTestPlanTier(user);
+  const email = user.email ?? (user.phone.startsWith("google:") ? user.phone.slice(7) : undefined);
   return {
     ...user,
+    email,
+    testPlanTier: lockedTier ?? undefined,
     hasPassword,
-    needsPasswordSetup: isPaid && !hasPassword,
+    needsPasswordSetup: isPaid && !hasPassword && !lockedTier,
   };
 }
 
@@ -86,6 +97,41 @@ export async function finalizeLogin(
   } else if (name && name !== user.name) {
     user = await upsertUserAsync({ ...stripUserRecord(user), name });
   }
+
+  if (new Date(user.aiQuestionsResetAt) <= new Date()) {
+    user = await upsertUserAsync({
+      ...stripUserRecord(user),
+      aiQuestionsUsed: 0,
+      aiQuestionsResetAt: getNextMonthReset(),
+    });
+  }
+
+  const token = await createSessionToken({ userId: user.id, phone: user.phone });
+  await setSessionCookie(token);
+
+  return buildAuthUserResponse(user);
+}
+
+export async function finalizeGoogleLogin(email: string, name: string): Promise<AuthUser> {
+  const normalizedEmail = normalizeTestEmail(email);
+  const testTier = getTestAccountTier(normalizedEmail);
+  if (!testTier) {
+    throw new Error("Unauthorized test account");
+  }
+
+  const phone = googlePhoneForEmail(normalizedEmail);
+  let user = await findUserByPhoneAsync(phone);
+  if (!user) {
+    const displayName = name || normalizedEmail.split("@")[0] || "Friend";
+    user = await upsertUserAsync({
+      ...createDefaultUser(phone, displayName),
+      email: normalizedEmail,
+    });
+  } else if (name && name !== user.name) {
+    user = await upsertUserAsync({ ...stripUserRecord(user), name, email: normalizedEmail });
+  }
+
+  await activateDemoSubscription(user.id, testTier);
 
   if (new Date(user.aiQuestionsResetAt) <= new Date()) {
     user = await upsertUserAsync({

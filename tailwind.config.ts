@@ -5,6 +5,9 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/context/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/hooks/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -12,10 +15,10 @@ const config: Config = {
         bg: "#FDF8F6",
         surface: "#FFFFFF",
         rose: {
-          deep: "#C4647A",
-          mid: "#D9899A",
-          soft: "#EDB8C2",
-          pale: "#F9EDF0",
+          deep: "var(--rose-deep)",
+          mid: "var(--rose-mid)",
+          soft: "var(--rose-soft)",
+          pale: "var(--rose-pale)",
         },
         blush: "#FAF0F2",
         ink: {
@@ -31,9 +34,9 @@ const config: Config = {
             deep: "#1E4D8C",
           },
           plus: {
-            light: "#F0EBFA",
-            mid: "#8B6BC4",
-            deep: "#4A2D7A",
+            light: "#E8EDFA",
+            mid: "#5878C8",
+            deep: "#2D4580",
           },
           premium: {
             light: "#FBF3E4",
@@ -73,10 +76,10 @@ const config: Config = {
       boxShadow: {
         phone: "0 25px 50px -12px rgba(42, 26, 31, 0.12)",
         card: "0 2px 12px rgba(42, 26, 31, 0.04)",
-        cta: "0 6px 24px rgba(196, 100, 122, 0.35)",
-        avatar: "0 4px 16px rgba(196, 100, 122, 0.30)",
+        cta: "var(--shadow-cta)",
+        avatar: "var(--shadow-avatar)",
         "glass-card": "0 8px 32px rgba(180, 60, 90, 0.25)",
-        "cycle-card": "0 8px 32px rgba(196, 100, 122, 0.35)",
+        "cycle-card": "var(--shadow-cycle-card)",
       },
       borderRadius: {
         card: "20px",

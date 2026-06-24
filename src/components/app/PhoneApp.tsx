@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PhoneFrame } from "@/components/layout/PhoneFrame";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { ScreenTransition } from "@/components/ui/ScreenTransition";
@@ -78,6 +79,35 @@ function ScreenContent({ screen, onNavigate }: ScreenContentProps) {
 
 function isNavTab(screen: AppScreen): screen is NavTab {
   return !OVERLAY_SCREENS.includes(screen);
+}
+
+function TestPlanRouteGuard({
+  previewTier,
+  children,
+}: {
+  previewTier?: SubscriptionTier;
+  children: React.ReactNode;
+}) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!previewTier || loading) return;
+    const locked = user?.testPlanTier;
+    if (locked && locked !== previewTier) {
+      router.replace(`/${locked}`);
+    }
+  }, [previewTier, user, loading, router]);
+
+  if (previewTier && !loading && user?.testPlanTier && user.testPlanTier !== previewTier) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-purple-dark">
+        Redirecting to your plan…
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 function PhoneAppInner() {
@@ -269,7 +299,9 @@ export function PhoneApp(props: PhoneAppProps = {}) {
               <div className="app-viewport-scale">
                 <PhoneFrame>
                   <div className="relative h-full">
-                    <PhoneAppInner />
+                    <TestPlanRouteGuard previewTier={isRoutePreview ? activeTier : undefined}>
+                      <PhoneAppInner />
+                    </TestPlanRouteGuard>
                   </div>
                 </PhoneFrame>
               </div>

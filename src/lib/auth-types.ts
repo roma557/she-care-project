@@ -1,5 +1,5 @@
 import { NotificationPreferences } from "@/lib/notifications";
-import { Subscription, DEFAULT_SUBSCRIPTION } from "@/lib/subscription";
+import { Subscription, DEFAULT_SUBSCRIPTION, PaidTier } from "@/lib/subscription";
 
 export interface AuthUser {
   id: string;
@@ -10,6 +10,10 @@ export interface AuthUser {
   notificationPrefs: NotificationPreferences;
   aiQuestionsUsed: number;
   aiQuestionsResetAt: string;
+  /** Google test account email when signed in via Google */
+  email?: string;
+  /** Locked plan tier for Google test accounts — cannot preview or switch plans */
+  testPlanTier?: PaidTier;
   /** Populated by auth API responses only */
   hasPassword?: boolean;
   /** Paid user who must set a password before using the app */

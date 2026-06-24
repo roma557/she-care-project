@@ -1,5 +1,6 @@
 -- HerWellness initial schema for Supabase
 -- Apply via: supabase db push  OR  paste into Supabase SQL Editor
+-- Security: app-level auth in Next.js API routes (see 20250625100000_disable_rls.sql)
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

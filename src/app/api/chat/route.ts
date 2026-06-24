@@ -6,6 +6,7 @@ import {
   matchTopicHint,
   type KnowledgeMatch,
 } from "@/lib/knowledge";
+import { chatCompletion } from "@/lib/ai/client";
 import { getSessionUser } from "@/lib/auth-server";
 import { resolveEffectiveTier, consumeUsage, UsageLimitError } from "@/lib/permissions";
 
@@ -117,36 +118,17 @@ export async function POST(req: NextRequest) {
     const { messages } = (await req.json()) as { messages: Message[] };
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const question = lastUser?.content ?? "";
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      const { content, match } = fallbackReply(question);
-      return NextResponse.json(buildResponse(content, question, true, match, usageInfo));
-    }
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
+    const content = await chatCompletion({
+      system: SYSTEM_PROMPT,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      maxTokens: 1000,
+      tier,
     });
 
-    if (!response.ok) {
-      const { content, match } = fallbackReply(question);
-      return NextResponse.json(buildResponse(content, question, true, match, usageInfo));
+    if (!content) {
+      const { content: fallbackContent, match } = fallbackReply(question);
+      return NextResponse.json(buildResponse(fallbackContent, question, true, match, usageInfo));
     }
-
-    const data = await response.json();
-    const content =
-      data.content?.[0]?.text ?? "I'm sorry, I couldn't generate a response. Please try again.";
     const match = findConditionAnswerHybrid(question);
     return NextResponse.json(buildResponse(content, question, false, match, usageInfo));
   } catch {

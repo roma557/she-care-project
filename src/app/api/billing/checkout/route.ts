@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth-server";
 import { getProvider } from "@/lib/billing/provider";
 import { isDemoMode } from "@/lib/billing/types";
 import { activateDemoSubscription } from "@/lib/billing/sync";
+import { assertTestPlanAllowed } from "@/lib/test-plan-guard";
 import type { PaidTier, BillingInterval } from "@/lib/subscription";
 import { PAID_TIERS } from "@/lib/subscription/plans";
 
@@ -20,6 +21,11 @@ export async function POST(req: NextRequest) {
   }
   if (interval !== "month" && interval !== "year") {
     return NextResponse.json({ error: "Invalid interval" }, { status: 400 });
+  }
+
+  const planError = assertTestPlanAllowed(user, tier);
+  if (planError) {
+    return NextResponse.json({ error: planError }, { status: 403 });
   }
 
   if (isDemoMode()) {

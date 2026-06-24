@@ -6,6 +6,7 @@ import { getPlanLabel } from "@/lib/subscription";
 import { PLAN_TAB_STYLES } from "@/lib/subscription/plan-colors";
 import { useDevPlanPreview } from "@/context/DevPlanPreviewContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/context/AuthContext";
 
 const FREE_TAB_STYLES = {
   active: "bg-cream text-ink border-ink/20 shadow-sm",
@@ -18,10 +19,11 @@ function tabStylesForTier(tier: SubscriptionTier) {
 }
 
 export function PlanExploreBar() {
+  const { user } = useAuth();
   const { setPreviewTier, isPreviewActive, routePreview } = useDevPlanPreview();
-  const { tier, actualTier } = usePermissions();
+  const { tier, actualTier, lockedTier } = usePermissions();
 
-  if (routePreview) return null;
+  if (routePreview || user?.testPlanTier || lockedTier) return null;
 
   function handleSelect(target: SubscriptionTier) {
     if (target === actualTier) {

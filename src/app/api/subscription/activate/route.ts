@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-server";
 import { isDemoMode } from "@/lib/billing/types";
 import { activateDemoSubscription } from "@/lib/billing/sync";
+import { assertTestPlanAllowed } from "@/lib/test-plan-guard";
 import { PAID_TIERS } from "@/lib/subscription/plans";
 import type { PaidTier } from "@/lib/subscription";
 
@@ -23,6 +24,11 @@ export async function POST(req: NextRequest) {
 
   if (!PAID_TIERS.includes(tier)) {
     return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
+  }
+
+  const planError = assertTestPlanAllowed(user, tier);
+  if (planError) {
+    return NextResponse.json({ error: planError }, { status: 403 });
   }
 
   await activateDemoSubscription(user.id, tier, interval);

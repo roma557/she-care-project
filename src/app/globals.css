@@ -25,18 +25,13 @@
   --rose-mid: #d9899a;
   --rose-soft: #edb8c2;
   --rose-pale: #f9edf0;
-  --blush: #faf0f2;
-  --ink: #2a1a1f;
-  --ink-mid: #6b4451;
-  --ink-faint: #b89aa2;
-  --gold: #c9956a;
 
   --plan-starter-light: #e8f0fa;
   --plan-starter-mid: #4a7fd4;
   --plan-starter-deep: #1e4d8c;
-  --plan-plus-light: #f0ebfa;
-  --plan-plus-mid: #8b6bc4;
-  --plan-plus-deep: #4a2d7a;
+  --plan-plus-light: #e8edfa;
+  --plan-plus-mid: #5878c8;
+  --plan-plus-deep: #2d4580;
   --plan-premium-light: #fbf3e4;
   --plan-premium-mid: #c9956a;
   --plan-premium-deep: #8b6914;
@@ -45,6 +40,27 @@
   --shadow-card: 0 2px 12px rgba(42, 26, 31, 0.04);
   --shadow-cta: 0 6px 24px rgba(196, 100, 122, 0.35);
   --shadow-avatar: 0 4px 16px rgba(196, 100, 122, 0.3);
+  --shadow-cycle-card: 0 8px 32px rgba(196, 100, 122, 0.35);
+}
+
+[data-tier="plus"] {
+  --rose-deep: var(--plan-plus-deep);
+  --rose-mid: var(--plan-plus-mid);
+  --rose-soft: #a8b8e0;
+  --rose-pale: var(--plan-plus-light);
+  --shadow-cta: 0 6px 24px rgba(45, 69, 128, 0.35);
+  --shadow-avatar: 0 4px 16px rgba(45, 69, 128, 0.3);
+  --shadow-cycle-card: 0 8px 32px rgba(45, 69, 128, 0.25);
+}
+
+[data-tier="premium"] {
+  --rose-deep: var(--plan-premium-deep);
+  --rose-mid: var(--plan-premium-mid);
+  --rose-soft: #e8d4b8;
+  --rose-pale: var(--plan-premium-light);
+  --shadow-cta: 0 6px 24px rgba(139, 105, 20, 0.35);
+  --shadow-avatar: 0 4px 16px rgba(139, 105, 20, 0.3);
+  --shadow-cycle-card: 0 8px 32px rgba(139, 105, 20, 0.35);
 }
 
 html {

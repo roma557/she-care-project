@@ -9,6 +9,7 @@ import type { UsageStatus } from "@/lib/permissions/usage";
 import type { TierLimits, UsageMeter } from "@/lib/subscription/limits";
 import { APP_REFRESH_EVENT } from "@/lib/sync-pull";
 import { useDevPlanPreview } from "@/context/DevPlanPreviewContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface BillingStatus {
   tier: SubscriptionTier;
@@ -62,9 +63,11 @@ function buildPreviewUsage(limits: TierLimits): BillingStatus["usage"] {
 }
 
 export function usePermissions() {
+  const { user } = useAuth();
   const { previewTier, isPreviewActive } = useDevPlanPreview();
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const lockedTier = user?.testPlanTier ?? null;
 
   const refresh = useCallback(async () => {
     try {
@@ -91,8 +94,12 @@ export function usePermissions() {
   }, [refresh]);
 
   const actualTier = status?.tier ?? "free";
-  const tier = isPreviewActive && previewTier ? previewTier : actualTier;
-  const previewLimits = isPreviewActive && previewTier ? getTierLimits(previewTier) : null;
+  const tier: SubscriptionTier = lockedTier
+    ? lockedTier
+    : isPreviewActive && previewTier
+      ? previewTier
+      : actualTier;
+  const previewLimits = !lockedTier && isPreviewActive && previewTier ? getTierLimits(previewTier) : null;
 
   const can = useCallback(
     (feature: Feature): boolean => {
@@ -142,7 +149,7 @@ export function usePermissions() {
     loading,
     tier,
     actualTier,
-    status: isPreviewActive && previewTier && previewLimits
+    status: !lockedTier && isPreviewActive && previewTier && previewLimits
       ? {
           ...(status ?? {
             tier: previewTier,
@@ -160,6 +167,7 @@ export function usePermissions() {
     refresh,
     startCheckout,
     demoMode: status?.demoMode ?? false,
-    isPreviewActive,
+    isPreviewActive: lockedTier ? false : isPreviewActive,
+    lockedTier,
   };
 }

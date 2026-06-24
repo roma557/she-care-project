@@ -26,6 +26,8 @@ import {
   PLAN_HEADING_TEXT,
 } from "@/lib/subscription/plan-colors";
 import { PlanExploreBar } from "@/components/plans/PlanExploreBar";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { useDevPlanPreview } from "@/context/DevPlanPreviewContext";
 import { comingSoonLabel, tierLockDesc } from "@/lib/app-features";
 
 interface ProfileScreenProps {
@@ -65,7 +67,8 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
     setPassword,
     changePassword,
   } = useAuth();
-  const { tier, remaining, startCheckout, refresh, can, demoMode } = usePermissions();
+  const { tier, remaining, startCheckout, refresh, can, demoMode, lockedTier } = usePermissions();
+  const { setPreviewTier } = useDevPlanPreview();
 
   const [showAuth, setShowAuth] = useState(false);
   const [activating, setActivating] = useState<PaidTier | null>(null);
@@ -74,14 +77,27 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   const [pushLoading, setPushLoading] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("month");
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const displayName = user?.name || profile.name || "Friend";
   const effectiveTier = tier;
   const isPaidUser = isAuthenticated && user && getEffectiveTier(user.subscription) !== "free";
+  const isTestAccount = Boolean(lockedTier ?? user?.testPlanTier);
+  const displayEmail = user?.email ?? (user?.phone.startsWith("google:") ? user.phone.slice(7) : null);
 
   useEffect(() => {
     setPushStatus(getBrowserPushStatus());
   }, [section]);
+
+  async function handleGoogleSuccess() {
+    setGoogleLoading(true);
+    setGoogleError(null);
+    setPreviewTier(null);
+    await refreshUser();
+    refresh();
+    setGoogleLoading(false);
+  }
 
   async function handleCheckout(plan: PaidTier) {
     if (!isAuthenticated) {
@@ -157,7 +173,9 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
         </div>
 
         <div className="mt-5 space-y-3">
-          {(Object.keys(PLANS) as PaidTier[]).map((planId) => {
+          {(Object.keys(PLANS) as PaidTier[])
+            .filter((planId) => !isTestAccount || planId === lockedTier)
+            .map((planId) => {
             const plan = PLANS[planId];
             const isCurrent = effectiveTier === planId && user && isSubscriptionActive(user.subscription);
             const price = billingInterval === "month" ? plan.monthlyPrice : plan.annualPrice;
@@ -321,7 +339,18 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
           <div className="flex-1">
             <p className="font-serif text-lg text-purple-dark">{displayName}</p>
             {isAuthenticated && user ? (
-              <p className="text-[10px] text-gray-500">{maskPhone(user.phone)}</p>
+              <>
+                {displayEmail ? (
+                  <p className="text-[10px] text-gray-500">{displayEmail}</p>
+                ) : (
+                  <p className="text-[10px] text-gray-500">{maskPhone(user.phone)}</p>
+                )}
+                {isTestAccount && lockedTier && (
+                  <p className="text-[10px] font-medium text-purple-mid">
+                    Test account · {getPlanLabel(lockedTier)} only
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-[10px] text-gray-500">Guest · data saved on this device</p>
             )}
@@ -329,13 +358,31 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
         </div>
 
         {!isAuthenticated ? (
-          <button
-            type="button"
-            onClick={() => setShowAuth(true)}
-            className="mt-4 w-full rounded-full bg-pink-mid py-2.5 text-xs font-medium text-white"
-          >
-            Sign in with phone →
-          </button>
+          <div className="mt-4 space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              className="w-full rounded-full bg-pink-mid py-2.5 text-xs font-medium text-white"
+            >
+              Sign in with phone →
+            </button>
+            <div className="relative flex items-center gap-3">
+              <div className="h-px flex-1 bg-pink-light" />
+              <span className="text-[10px] text-gray-400">or test with Google</span>
+              <div className="h-px flex-1 bg-pink-light" />
+            </div>
+            <GoogleSignInButton
+              disabled={googleLoading}
+              onSuccess={() => void handleGoogleSuccess()}
+              onError={setGoogleError}
+            />
+            {googleError && (
+              <p className="text-center text-[10px] text-red-600">{googleError}</p>
+            )}
+            <p className="text-center text-[10px] text-gray-500">
+              plus@test.com → Plus · premium@test.com → Premium
+            </p>
+          </div>
         ) : (
           <button
             type="button"
@@ -375,13 +422,20 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
             className="h-8 w-8 text-rose-deep"
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setSection("plans")}
-          className="mt-4 w-full rounded-full bg-purple-dark py-2.5 text-xs font-medium text-white"
-        >
-          {effectiveTier === "free" ? "Upgrade plan" : "Change plan"}
-        </button>
+        {!isTestAccount && (
+          <button
+            type="button"
+            onClick={() => setSection("plans")}
+            className="mt-4 w-full rounded-full bg-purple-dark py-2.5 text-xs font-medium text-white"
+          >
+            {effectiveTier === "free" ? "Upgrade plan" : "Change plan"}
+          </button>
+        )}
+        {isTestAccount && (
+          <p className="mt-4 rounded-xl bg-purple-light/50 px-3 py-2 text-center text-[10px] text-purple-dark">
+            Plan locked to {getPlanLabel(lockedTier ?? effectiveTier)} on this test account
+          </p>
+        )}
         {can("priority_support") && (
           <a
             href="mailto:support@herwellness.app?subject=Premium%20Support"

@@ -18,9 +18,10 @@ import {
 interface PlanHomeDashboardProps {
   tier: "plus" | "premium";
   onNavigate: (screen: AppScreen) => void;
+  className?: string;
 }
 
-export function PlanHomeDashboard({ tier, onNavigate }: PlanHomeDashboardProps) {
+export function PlanHomeDashboard({ tier, onNavigate, className = "" }: PlanHomeDashboardProps) {
   const config = getPlanHomeDashboard(tier);
   const plan = PLANS[tier];
   const theme = PLAN_CARD_THEME[tier];
@@ -30,7 +31,7 @@ export function PlanHomeDashboard({ tier, onNavigate }: PlanHomeDashboardProps) 
     <PlanGlassCard
       tier={tier}
       footnote={`${theme.footnote} · Quick access`}
-      className="mt-3"
+      className={className}
     >
       <PlanGlassHeader
         label={`Your plan · ${plan.name}`}
