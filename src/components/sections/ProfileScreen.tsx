@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { AppShell, AppHeader } from "@/components/layout/AppShell";
 import { useAuth } from "@/context/AuthContext";
 import { useAppState } from "@/context/AppStateContext";
@@ -326,33 +327,33 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
   const insightsLeft = remaining("ai_insights");
 
   return (
-    <AppShell className="bg-gradient-to-b from-peach/30 via-cream to-cream">
+    <AppShell className="bg-surface-0">
       <AppHeader>
-        <h1 className="font-serif text-2xl font-semibold text-purple-dark">Profile</h1>
+        <h1 className="font-serif text-2xl font-semibold text-content-primary">Profile</h1>
       </AppHeader>
 
-      <div className="mb-4 rounded-3xl bg-white p-5 shadow-card">
+      <div className="mb-4 rounded-3xl bg-surface-1 border border-divider p-5 shadow-card">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-pink-mid to-purple-mid text-xl text-white">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-xl text-white">
             {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
-            <p className="font-serif text-lg text-purple-dark">{displayName}</p>
+            <p className="font-serif text-lg text-content-primary">{displayName}</p>
             {isAuthenticated && user ? (
               <>
                 {displayEmail ? (
-                  <p className="text-[10px] text-gray-500">{displayEmail}</p>
+                  <p className="text-[10px] text-content-secondary">{displayEmail}</p>
                 ) : (
-                  <p className="text-[10px] text-gray-500">{maskPhone(user.phone)}</p>
+                  <p className="text-[10px] text-content-secondary">{maskPhone(user.phone)}</p>
                 )}
                 {isTestAccount && lockedTier && (
-                  <p className="text-[10px] font-medium text-purple-mid">
+                  <p className="text-[10px] font-medium text-brand">
                     Test account · {getPlanLabel(lockedTier)} only
                   </p>
                 )}
               </>
             ) : (
-              <p className="text-[10px] text-gray-500">Guest · data saved on this device</p>
+              <p className="text-[10px] text-content-secondary">Guest · data saved on this device</p>
             )}
           </div>
         </div>
@@ -362,14 +363,14 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
             <button
               type="button"
               onClick={() => setShowAuth(true)}
-              className="w-full rounded-full bg-pink-mid py-2.5 text-xs font-medium text-white"
+              className="w-full rounded-full bg-brand hover:bg-brand-hover py-2.5 text-xs font-medium text-white transition-colors"
             >
               Sign in with phone →
             </button>
             <div className="relative flex items-center gap-3">
-              <div className="h-px flex-1 bg-pink-light" />
-              <span className="text-[10px] text-gray-400">or test with Google</span>
-              <div className="h-px flex-1 bg-pink-light" />
+              <div className="h-px flex-1 bg-divider" />
+              <span className="text-[10px] text-content-secondary">or test with Google</span>
+              <div className="h-px flex-1 bg-divider" />
             </div>
             <GoogleSignInButton
               disabled={googleLoading}
@@ -377,9 +378,9 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
               onError={setGoogleError}
             />
             {googleError && (
-              <p className="text-center text-[10px] text-red-600">{googleError}</p>
+              <p className="text-center text-[10px] text-destructive">{googleError}</p>
             )}
-            <p className="text-center text-[10px] text-gray-500">
+            <p className="text-center text-[10px] text-content-tertiary">
               plus@test.com → Plus · premium@test.com → Premium
             </p>
           </div>
@@ -387,7 +388,7 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
           <button
             type="button"
             onClick={logout}
-            className="mt-4 w-full rounded-full border border-pink-light py-2.5 text-xs font-medium text-pink-mid"
+            className="mt-4 w-full rounded-full border border-divider hover:bg-surface-2 py-2.5 text-xs font-medium text-content-primary transition-colors"
           >
             Sign out
           </button>
@@ -396,13 +397,13 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
 
       <PlanExploreBar />
 
-      <div className="mb-4 rounded-3xl bg-gradient-to-br from-purple-light to-pink-light/60 p-5 shadow-card">
+      <div className="mb-4 rounded-3xl bg-surface-1 border border-divider p-5 shadow-card">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-purple-mid">Your plan</p>
-            <p className="mt-0.5 font-serif text-xl text-purple-dark">{getPlanLabel(effectiveTier)}</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-content-secondary">Your plan</p>
+            <p className="mt-0.5 font-serif text-xl text-content-primary">{getPlanLabel(effectiveTier)}</p>
             {user?.subscription.expiresAt && effectiveTier !== "free" && (
-              <p className="mt-1 text-[10px] text-gray-600">
+              <p className="mt-1 text-[10px] text-content-secondary">
                 Renews{" "}
                 {new Date(user.subscription.expiresAt).toLocaleDateString("en-IN", {
                   day: "numeric",
@@ -412,34 +413,34 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
               </p>
             )}
             {isAuthenticated && aiLeft !== null && (
-              <p className="mt-1 text-[10px] text-gray-600">
+              <p className="mt-1 text-[10px] text-content-secondary">
                 AI Coach: {aiLeft} left · Insights: {insightsLeft ?? 0} left
               </p>
             )}
           </div>
           <AppIcon
             name={TIER_ICONS[effectiveTier] ?? "flower"}
-            className="h-8 w-8 text-rose-deep"
+            className="h-8 w-8 text-brand"
           />
         </div>
         {!isTestAccount && (
           <button
             type="button"
             onClick={() => setSection("plans")}
-            className="mt-4 w-full rounded-full bg-purple-dark py-2.5 text-xs font-medium text-white"
+            className="mt-4 w-full rounded-full bg-surface-2 hover:bg-surface-3 border border-divider py-2.5 text-xs font-medium text-content-primary transition-colors"
           >
             {effectiveTier === "free" ? "Upgrade plan" : "Change plan"}
           </button>
         )}
         {isTestAccount && (
-          <p className="mt-4 rounded-xl bg-purple-light/50 px-3 py-2 text-center text-[10px] text-purple-dark">
+          <p className="mt-4 rounded-xl bg-surface-2 px-3 py-2 text-center text-[10px] text-content-primary border border-divider">
             Plan locked to {getPlanLabel(lockedTier ?? effectiveTier)} on this test account
           </p>
         )}
         {can("priority_support") && (
           <a
             href="mailto:support@herwellness.app?subject=Premium%20Support"
-            className="mt-2 block text-center text-[10px] text-purple-mid underline"
+            className="mt-2 block text-center text-[10px] text-brand underline"
           >
             Priority support
           </a>
@@ -509,10 +510,11 @@ export function ProfileScreen({ onNavigate }: ProfileScreenProps) {
           locked
           disabled
         />
+        <DarkModeRow />
       </div>
 
       {!isAuthenticated && (
-        <p className="mt-5 rounded-xl bg-amber-light/60 px-3 py-2.5 text-[10px] leading-relaxed text-amber-mid">
+        <p className="mt-5 rounded-xl bg-surface-2 border border-warning-subtle px-3 py-2.5 text-[10px] leading-relaxed text-content-secondary">
           Sign in to sync your plan & notifications across devices. Paid plans are linked to your phone number.
         </p>
       )}
@@ -542,20 +544,66 @@ function MenuRow({
       type="button"
       onClick={isDisabled ? undefined : onClick}
       disabled={isDisabled}
-      className={`flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left shadow-card ${
-        isDisabled ? "cursor-not-allowed opacity-60" : "active:opacity-90"
+      className={`flex w-full items-center gap-3 rounded-2xl bg-surface-1 border border-divider p-4 text-left shadow-card ${
+        isDisabled ? "cursor-not-allowed opacity-60" : "hover:bg-surface-2 active:scale-95 transition-all"
       }`}
     >
-      <AppIcon name={icon} className="h-5 w-5 shrink-0 text-rose-deep" />
+      <AppIcon name={icon} className="h-5 w-5 shrink-0 text-brand" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-purple-dark">{label}</p>
-        <p className="text-[10px] text-gray-500">{desc}</p>
+        <p className="text-sm font-medium text-content-primary">{label}</p>
+        <p className="text-[10px] text-content-secondary">{desc}</p>
       </div>
       {locked ? (
-        <AppIcon name="lock" className="h-4 w-4 shrink-0 text-gray-300" aria-hidden />
+        <AppIcon name="lock" className="h-4 w-4 shrink-0 text-content-tertiary" aria-hidden />
       ) : (
-        <span className="text-gray-300">→</span>
+        <span className="text-content-tertiary">→</span>
       )}
     </button>
   );
 }
+
+function DarkModeRow() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex w-full items-center gap-3 rounded-2xl bg-surface-1 border border-divider p-4 h-[60px]" />
+    );
+  }
+
+  const isDark = theme === "dark";
+
+  return (
+    <div className="flex w-full items-center gap-3 rounded-2xl bg-surface-1 border border-divider p-4 shadow-card">
+      <AppIcon name={isDark ? "moon" : "sun"} className="h-5 w-5 shrink-0 text-brand" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-content-primary">Dark mode</p>
+        <p className="text-[10px] text-content-secondary">
+          {isDark ? "On — easier on the eyes" : "Off — light appearance"}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDark}
+        aria-label="Toggle dark mode"
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        className={`relative h-7 w-12 rounded-full transition-colors ${
+          isDark ? "bg-brand" : "bg-surface-3"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+            isDark ? "left-5" : "left-0.5"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+

@@ -21,6 +21,18 @@
 
   --bg: #fdf8f6;
   --surface: #ffffff;
+  --surface-0: #fdf8f6;
+  --surface-1: #ffffff;
+  --surface-2: #faf0f2;
+  --surface-3: #f9edf0;
+
+  --ink: #2a1a1f;
+  --ink-mid: #6b4451;
+  --ink-faint: #b89aa2;
+
+  --border-subtle: rgba(42, 26, 31, 0.06);
+  --border-interactive: rgba(42, 26, 31, 0.12);
+
   --rose-deep: #c4647a;
   --rose-mid: #d9899a;
   --rose-soft: #edb8c2;
@@ -41,6 +53,76 @@
   --shadow-cta: 0 6px 24px rgba(196, 100, 122, 0.35);
   --shadow-avatar: 0 4px 16px rgba(196, 100, 122, 0.3);
   --shadow-cycle-card: 0 8px 32px rgba(196, 100, 122, 0.35);
+
+  /* Semantic Typography (Light Mode Fallback) */
+  --text-primary: #2a1a1f; 
+  --text-secondary: #6b4451; 
+  --text-tertiary: #b89aa2; 
+  --text-accent: #c4647a; 
+
+  /* Borders and Glass */
+  --border-hover: rgba(42, 26, 31, 0.12);
+  --glass-surface: rgba(255, 255, 255, 0.65);
+
+  /* Calibrated Accents (Light Mode Fallback) */
+  --accent-brand: #c4647a;
+  --accent-brand-hover: #a34c5e;
+  --accent-brand-subtle: rgba(196, 100, 122, 0.15); 
+  
+  --accent-success: #1D9E75;
+  --accent-success-subtle: rgba(29, 158, 117, 0.15);
+  
+  --accent-warning: #C9956A;
+  --accent-warning-subtle: rgba(201, 149, 106, 0.15);
+  
+  --accent-destructive: #c4647a;
+  --accent-destructive-subtle: rgba(196, 100, 122, 0.15);
+}
+
+/* Premium Dark Mode Design System Specification */
+.dark {
+  /* Surface 0: The Base Canvas. */
+  --bg: #0D0E12;
+  --surface: #16171D;
+  --surface-0: #0D0E12; 
+  --surface-1: #16171D; 
+  --surface-2: #22252A; 
+  --surface-3: #2A2D35; 
+
+  /* Text */
+  --ink: #F8FAFC;
+  --ink-mid: #94A3B8;
+  --ink-faint: #64748B;
+  --text-primary: #F8FAFC; 
+  --text-secondary: #94A3B8; 
+  --text-tertiary: #64748B; 
+  --text-accent: #B89AA2; 
+
+  /* Borders and Glass */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-interactive: rgba(255, 255, 255, 0.12);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --glass-surface: rgba(13, 14, 18, 0.65);
+
+  /* Calibrated Accents (Dusty Pinks / Maroons) */
+  --accent-brand: #6B3A4A;
+  --accent-brand-hover: #82475A;
+  --accent-brand-subtle: rgba(107, 58, 74, 0.2); 
+  
+  --accent-success: #34D399;
+  --accent-success-subtle: rgba(52, 211, 153, 0.15);
+  
+  --accent-warning: #FBBF24;
+  --accent-warning-subtle: rgba(251, 191, 36, 0.15);
+  
+  --accent-destructive: #F87171;
+  --accent-destructive-subtle: rgba(248, 113, 113, 0.15);
+
+  /* Legacy Rose mapping tailored for the new Dark Mode */
+  --rose-deep: #6B3A4A;
+  --rose-mid: #82475A;
+  --rose-soft: #4A2632;
+  --rose-pale: rgba(107, 58, 74, 0.15);
 }
 
 [data-tier="plus"] {

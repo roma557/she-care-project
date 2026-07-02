@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,8 +13,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#FDF8F6",
-        surface: "#FFFFFF",
+        bg: "var(--bg)",
+        surface: {
+          DEFAULT: "var(--surface)",
+          0: "var(--surface-0)",
+          1: "var(--surface-1)",
+          2: "var(--surface-2)",
+          3: "var(--surface-3)",
+        },
         rose: {
           deep: "var(--rose-deep)",
           mid: "var(--rose-mid)",
@@ -22,12 +29,12 @@ const config: Config = {
         },
         blush: "#FAF0F2",
         ink: {
-          DEFAULT: "#2A1A1F",
-          mid: "#6B4451",
-          faint: "#B89AA2",
+          DEFAULT: "var(--ink)",
+          mid: "var(--ink-mid)",
+          faint: "var(--ink-faint)",
         },
         gold: "#C9956A",
-        plan: {
+          plan: {
           starter: {
             light: "#E8F0FA",
             mid: "#4A7FD4",
@@ -44,6 +51,36 @@ const config: Config = {
             deep: "#8B6914",
             dark: "#6B5010",
           },
+        },
+        /* Semantic Typography */
+        content: {
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          tertiary: "var(--text-tertiary)",
+          accent: "var(--text-accent)",
+        },
+        /* Borders */
+        divider: {
+          DEFAULT: "var(--border-subtle)",
+          hover: "var(--border-hover)",
+        },
+        /* Calibrated Accents */
+        brand: {
+          DEFAULT: "var(--accent-brand)",
+          hover: "var(--accent-brand-hover)",
+          subtle: "var(--accent-brand-subtle)",
+        },
+        success: {
+          DEFAULT: "var(--accent-success)",
+          subtle: "var(--accent-success-subtle)",
+        },
+        warning: {
+          DEFAULT: "var(--accent-warning)",
+          subtle: "var(--accent-warning-subtle)",
+        },
+        destructive: {
+          DEFAULT: "var(--accent-destructive)",
+          subtle: "var(--accent-destructive-subtle)",
         },
         /* legacy aliases — mapped to SheCare palette */
         pink: {
@@ -72,6 +109,16 @@ const config: Config = {
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
+      backgroundColor: {
+        glass: "var(--glass-surface)",
+      },
+      borderColor: {
+        glass: "var(--border-subtle)",
+        "glass-highlight": "var(--border-hover)",
+      },
+      backdropBlur: {
+        glass: "16px",
       },
       boxShadow: {
         phone: "0 25px 50px -12px rgba(42, 26, 31, 0.12)",
